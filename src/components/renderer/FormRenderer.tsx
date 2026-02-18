@@ -148,9 +148,6 @@ export function FormRenderer({ form, previewMode = false }: FormRendererProps) {
   // ─── Form ─────────────────────────────────────────────────────────────────
   return (
     <div className="min-h-screen bg-slate-100">
-      {/* Top accent bar */}
-      <div className="h-1.5 bg-slate-900 w-full" />
-
       <div className="max-w-xl mx-auto px-4 py-10">
         {/* Form header */}
         <div className="mb-6 text-center">

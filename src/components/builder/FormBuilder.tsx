@@ -53,7 +53,7 @@ export function FormBuilder({ form }: FormBuilderProps) {
   const [isPublished, setIsPublished] = useState(form.is_published);
   const [publicUrl, setPublicUrl] = useState<string | null>(
     form.is_published && form.slug
-      ? `${window.location.origin}/f/${form.slug}`
+      ? `${typeof window !== "undefined" ? window.location.origin : ""}/f/${form.slug}`
       : null,
   );
   const [publishLoading, setPublishLoading] = useState(false);
@@ -203,7 +203,9 @@ export function FormBuilder({ form }: FormBuilderProps) {
               className="flex items-center gap-1.5 group"
               onClick={() => setEditingTitle(true)}
             >
-              <span className="font-semibold text-slate-900 dark:text-slate-100">{formTitle}</span>
+              <span className="font-semibold text-slate-900 dark:text-slate-100">
+                {formTitle}
+              </span>
               <Pencil className="h-3.5 w-3.5 text-slate-400 opacity-0 group-hover:opacity-100 transition-opacity" />
             </button>
           )}
