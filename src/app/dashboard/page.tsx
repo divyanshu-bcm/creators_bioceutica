@@ -4,6 +4,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { NewFormButton } from "@/components/dashboard/NewFormButton";
+import { DuplicateFormButton } from "@/components/dashboard/DuplicateFormButton";
 import type { Form } from "@/lib/types";
 import { FileText, Eye } from "lucide-react";
 
@@ -76,6 +77,7 @@ export default async function DashboardPage() {
                   >
                     <Link href={`/dashboard/forms/${form.id}`}>Edit</Link>
                   </Button>
+                  <DuplicateFormButton formId={form.id} />
                   <Button asChild size="sm" variant="ghost">
                     <Link href={`/dashboard/forms/${form.id}/responses`}>
                       <Eye className="h-4 w-4" />
