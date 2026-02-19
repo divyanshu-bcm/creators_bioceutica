@@ -2,13 +2,13 @@
 // PUT /api/forms/[formId] — update form metadata
 // DELETE /api/forms/[formId] — delete form
 import { NextResponse } from "next/server";
-import { createAdminClient } from "@/lib/supabase/server";
+import { createServiceRoleClient } from "@/lib/supabase/admin";
 
 type Params = { params: Promise<{ formId: string }> };
 
 export async function GET(_req: Request, { params }: Params) {
   const { formId } = await params;
-  const supabase = await createAdminClient();
+  const supabase = createServiceRoleClient();
 
   const { data: form, error: formError } = await supabase
     .from("forms")
@@ -48,7 +48,7 @@ export async function GET(_req: Request, { params }: Params) {
 
 export async function PUT(request: Request, { params }: Params) {
   const { formId } = await params;
-  const supabase = await createAdminClient();
+  const supabase = createServiceRoleClient();
   const body = await request.json();
 
   const { data, error } = await supabase
@@ -68,7 +68,7 @@ export async function PUT(request: Request, { params }: Params) {
 
 export async function DELETE(_req: Request, { params }: Params) {
   const { formId } = await params;
-  const supabase = await createAdminClient();
+  const supabase = createServiceRoleClient();
 
   const { error } = await supabase.from("forms").delete().eq("id", formId);
   if (error)

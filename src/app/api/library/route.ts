@@ -1,9 +1,9 @@
 import { NextResponse } from "next/server";
-import { createAdminClient } from "@/lib/supabase/server";
+import { createServiceRoleClient } from "@/lib/supabase/admin";
 
 export async function GET() {
   try {
-    const supabase = await createAdminClient();
+    const supabase = createServiceRoleClient();
 
     const { data, error } = await supabase.storage
       .from("form_library")

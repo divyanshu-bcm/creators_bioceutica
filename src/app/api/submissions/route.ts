@@ -1,10 +1,10 @@
 // POST /api/submissions — save form submission + fire webhook (PUBLIC)
 import { NextResponse } from "next/server";
-import { createAdminClient } from "@/lib/supabase/server";
+import { createServiceRoleClient } from "@/lib/supabase/admin";
 import { fireWebhook } from "@/lib/webhook";
 
 export async function POST(request: Request) {
-  const supabase = await createAdminClient();
+  const supabase = createServiceRoleClient();
   const body = await request.json();
   const { formId, data } = body;
 

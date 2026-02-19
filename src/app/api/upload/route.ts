@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { createAdminClient } from "@/lib/supabase/server";
+import { createServiceRoleClient } from "@/lib/supabase/admin";
 
 export async function POST(req: NextRequest) {
   try {
@@ -32,7 +32,7 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    const supabase = await createAdminClient();
+    const supabase = createServiceRoleClient();
 
     const ext = file.name.split(".").pop() ?? "bin";
     const filename = `${Date.now()}-${Math.random().toString(36).slice(2)}.${ext}`;

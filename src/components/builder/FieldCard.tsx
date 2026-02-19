@@ -20,6 +20,7 @@ import {
   Upload,
   Images,
   Loader2,
+  Undo2,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -65,7 +66,10 @@ interface FieldCardProps {
   isLast: boolean;
   onUpdate: (fieldId: string, updates: Partial<FormField>) => void;
   onDelete: (fieldId: string) => void;
+  onRestore: (fieldId: string) => void;
   onMove: (fieldId: string, direction: "up" | "down") => void;
+  onDragHandlePointerDown: () => void;
+  onDragHandlePointerUp: () => void;
 }
 
 export function FieldCard({
@@ -75,8 +79,14 @@ export function FieldCard({
   isLast,
   onUpdate,
   onDelete,
+  onRestore,
   onMove,
+  onDragHandlePointerDown,
+  onDragHandlePointerUp,
 }: FieldCardProps) {
+  const isPendingDelete = field.pending_delete;
+  const isNewDraft = field.is_draft && !field.draft_parent_id;
+  const isEditDraft = field.is_draft && !!field.draft_parent_id;
   const [editing, setEditing] = useState(false);
   const [localField, setLocalField] = useState<FormField>(field);
   const [uploading, setUploading] = useState(false);
@@ -130,13 +140,19 @@ export function FieldCard({
   return (
     <div
       className={cn(
-        "rounded-lg border-2 p-4 transition-all",
-        FIELD_COLOR[field.field_type],
+        "rounded-lg border-2 p-4 transition-all relative",
+        isPendingDelete
+          ? "border-red-300 bg-red-50/80 dark:border-red-800/60 dark:bg-red-950/20 opacity-70"
+          : FIELD_COLOR[field.field_type],
       )}
     >
       {/* Header row */}
       <div className="flex items-center gap-2">
-        <GripVertical className="h-4 w-4 text-slate-400 shrink-0 cursor-grab active:cursor-grabbing" />
+        <GripVertical
+          className="h-4 w-4 text-slate-400 shrink-0 cursor-grab active:cursor-grabbing"
+          onPointerDown={onDragHandlePointerDown}
+          onPointerUp={onDragHandlePointerUp}
+        />
         <div className="flex-1 min-w-0">
           {field.field_type === "image" ? (
             <span className="text-sm font-medium text-slate-600 dark:text-slate-400">
@@ -158,46 +174,75 @@ export function FieldCard({
         <Badge variant="outline" className="text-xs shrink-0">
           {FIELD_LABEL[field.field_type]}
         </Badge>
+        {isNewDraft && (
+          <Badge className="text-xs shrink-0 bg-blue-100 text-blue-700 border-blue-300 dark:bg-blue-900/40 dark:text-blue-300 dark:border-blue-700">
+            New
+          </Badge>
+        )}
+        {isEditDraft && (
+          <Badge className="text-xs shrink-0 bg-amber-100 text-amber-700 border-amber-300 dark:bg-amber-900/40 dark:text-amber-300 dark:border-amber-700">
+            Modified
+          </Badge>
+        )}
+        {isPendingDelete && (
+          <Badge className="text-xs shrink-0 bg-red-100 text-red-700 border-red-300 dark:bg-red-900/40 dark:text-red-300 dark:border-red-700">
+            Will delete
+          </Badge>
+        )}
         <div className="flex items-center gap-1 shrink-0">
-          <Button
-            variant="ghost"
-            size="icon"
-            className="h-7 w-7"
-            onClick={() => onMove(field.id, "up")}
-            disabled={isFirst}
-          >
-            <ChevronUp className="h-3 w-3" />
-          </Button>
-          <Button
-            variant="ghost"
-            size="icon"
-            className="h-7 w-7"
-            onClick={() => onMove(field.id, "down")}
-            disabled={isLast}
-          >
-            <ChevronDown className="h-3 w-3" />
-          </Button>
-          <Button
-            variant="ghost"
-            size="icon"
-            className="h-7 w-7"
-            onClick={() => setEditing((v) => !v)}
-          >
-            <Pencil className="h-3 w-3" />
-          </Button>
-          <Button
-            variant="ghost"
-            size="icon"
-            className="h-7 w-7 text-red-500 hover:text-red-700"
-            onClick={() => onDelete(field.id)}
-          >
-            <Trash2 className="h-3 w-3" />
-          </Button>
+          {isPendingDelete ? (
+            <Button
+              variant="ghost"
+              size="sm"
+              className="h-7 px-2 text-green-600 hover:text-green-800 hover:bg-green-50 dark:text-green-400 dark:hover:bg-green-950/40"
+              onClick={() => onRestore(field.id)}
+              title="Undo deletion"
+            >
+              <Undo2 className="h-3 w-3 mr-1" /> Undo
+            </Button>
+          ) : (
+            <>
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-7 w-7"
+                onClick={() => onMove(field.id, "up")}
+                disabled={isFirst}
+              >
+                <ChevronUp className="h-3 w-3" />
+              </Button>
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-7 w-7"
+                onClick={() => onMove(field.id, "down")}
+                disabled={isLast}
+              >
+                <ChevronDown className="h-3 w-3" />
+              </Button>
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-7 w-7"
+                onClick={() => setEditing((v) => !v)}
+              >
+                <Pencil className="h-3 w-3" />
+              </Button>
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-7 w-7 text-red-500 hover:text-red-700"
+                onClick={() => onDelete(field.id)}
+              >
+                <Trash2 className="h-3 w-3" />
+              </Button>
+            </>
+          )}
         </div>
       </div>
 
       {/* Edit panel */}
-      {editing && (
+      {editing && !isPendingDelete && (
         <div className="mt-4 space-y-3 bg-white dark:bg-slate-900 rounded-md p-4 border border-slate-200 dark:border-slate-700">
           {field.field_type === "image" ? (
             <>

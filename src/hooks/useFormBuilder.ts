@@ -56,17 +56,41 @@ export function useFormBuilder(initial: BuilderState) {
 
   const deleteStep = useCallback(
     async (formId: string, stepId: string) => {
-      if (state.steps.length <= 1) return;
+      // Don't call API if there's only one non-pending-delete step
+      const workingCount = state.steps.filter((s) => !s.pending_delete).length;
+      if (workingCount <= 1) return;
       const res = await fetch(`/api/forms/${formId}/steps?stepId=${stepId}`, {
         method: "DELETE",
       });
       if (!res.ok) return;
-      setState((s) => {
-        const remaining = s.steps.filter((st) => st.id !== stepId);
-        const nextActive =
-          s.activeStepId === stepId ? (remaining[0]?.id ?? "") : s.activeStepId;
-        return { steps: remaining, activeStepId: nextActive };
-      });
+      const result: { deleted?: true; pending_delete?: true } =
+        await res.json();
+
+      if (result.deleted) {
+        setState((s) => {
+          const remaining = s.steps.filter((st) => st.id !== stepId);
+          const nextActive =
+            s.activeStepId === stepId
+              ? (remaining.find((st) => !st.pending_delete)?.id ??
+                remaining[0]?.id ??
+                "")
+              : s.activeStepId;
+          return { steps: remaining, activeStepId: nextActive };
+        });
+      } else if (result.pending_delete) {
+        setState((s) => {
+          const steps = s.steps.map((st) =>
+            st.id === stepId ? { ...st, pending_delete: true } : st,
+          );
+          const nextActive =
+            s.activeStepId === stepId
+              ? (steps.find((st) => !st.pending_delete)?.id ??
+                steps[0]?.id ??
+                "")
+              : s.activeStepId;
+          return { steps, activeStepId: nextActive };
+        });
+      }
     },
     [state.steps],
   );
@@ -110,7 +134,7 @@ export function useFormBuilder(initial: BuilderState) {
 
   const updateField = useCallback(
     async (formId: string, fieldId: string, updates: Partial<FormField>) => {
-      // Optimistic update
+      // Optimistic update (using spread; id will be corrected below if a draft row is created)
       setState((s) => ({
         ...s,
         steps: s.steps.map((st) => ({
@@ -122,12 +146,38 @@ export function useFormBuilder(initial: BuilderState) {
       }));
 
       setSaving(true);
-      await fetch(`/api/forms/${formId}/fields`, {
+      const res = await fetch(`/api/forms/${formId}/fields`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ id: fieldId, ...updates }),
       });
       setSaving(false);
+      if (!res.ok) return;
+      const result: { field: FormField; replacedId?: string } =
+        await res.json();
+      if (result.replacedId) {
+        // A new draft shadow row was created; swap the published id out for the draft id
+        setState((s) => ({
+          ...s,
+          steps: s.steps.map((st) => ({
+            ...st,
+            fields: st.fields.map((f) =>
+              f.id === result.replacedId ? result.field : f,
+            ),
+          })),
+        }));
+      } else {
+        // In-place update — sync with server data
+        setState((s) => ({
+          ...s,
+          steps: s.steps.map((st) => ({
+            ...st,
+            fields: st.fields.map((f) =>
+              f.id === result.field.id ? result.field : f,
+            ),
+          })),
+        }));
+      }
     },
     [],
   );
@@ -139,14 +189,51 @@ export function useFormBuilder(initial: BuilderState) {
         { method: "DELETE" },
       );
       if (!res.ok) return;
-      setState((s) => ({
-        ...s,
-        steps: s.steps.map((st) =>
-          st.id === stepId
-            ? { ...st, fields: st.fields.filter((f) => f.id !== fieldId) }
-            : st,
-        ),
-      }));
+      const result: { deleted?: true; field?: FormField; replacedId?: string } =
+        await res.json();
+
+      if (result.deleted) {
+        // Hard-deleted (was a pure new draft) — remove from state
+        setState((s) => ({
+          ...s,
+          steps: s.steps.map((st) =>
+            st.id === stepId
+              ? { ...st, fields: st.fields.filter((f) => f.id !== fieldId) }
+              : st,
+          ),
+        }));
+      } else if (result.field && result.replacedId) {
+        // Was an edit-draft; draft removed, parent marked pending_delete.
+        // Swap draft row out, replace with updated parent.
+        setState((s) => ({
+          ...s,
+          steps: s.steps.map((st) =>
+            st.id === stepId
+              ? {
+                  ...st,
+                  fields: st.fields.map((f) =>
+                    f.id === result.replacedId ? result.field! : f,
+                  ),
+                }
+              : st,
+          ),
+        }));
+      } else if (result.field) {
+        // Published field now marked pending_delete
+        setState((s) => ({
+          ...s,
+          steps: s.steps.map((st) =>
+            st.id === stepId
+              ? {
+                  ...st,
+                  fields: st.fields.map((f) =>
+                    f.id === result.field!.id ? result.field! : f,
+                  ),
+                }
+              : st,
+          ),
+        }));
+      }
     },
     [],
   );
@@ -223,6 +310,45 @@ export function useFormBuilder(initial: BuilderState) {
     [],
   );
 
+  const restoreField = useCallback(
+    async (formId: string, stepId: string, fieldId: string) => {
+      const res = await fetch(`/api/forms/${formId}/fields`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ id: fieldId, pending_delete: false }),
+      });
+      if (!res.ok) return;
+      const { field }: { field: FormField } = await res.json();
+      setState((s) => ({
+        ...s,
+        steps: s.steps.map((st) =>
+          st.id === stepId
+            ? {
+                ...st,
+                fields: st.fields.map((f) => (f.id === fieldId ? field : f)),
+              }
+            : st,
+        ),
+      }));
+    },
+    [],
+  );
+
+  const restoreStep = useCallback(async (formId: string, stepId: string) => {
+    const res = await fetch(`/api/forms/${formId}/steps`, {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ id: stepId, pending_delete: false }),
+    });
+    if (!res.ok) return;
+    const step: FormStep = await res.json();
+    setState((s) => ({
+      ...s,
+      steps: s.steps.map((st) => (st.id === stepId ? { ...st, ...step } : st)),
+      activeStepId: stepId,
+    }));
+  }, []);
+
   return {
     steps: state.steps,
     activeStepId: state.activeStepId,
@@ -236,5 +362,7 @@ export function useFormBuilder(initial: BuilderState) {
     deleteField,
     moveField,
     reorderFields,
+    restoreField,
+    restoreStep,
   };
 }

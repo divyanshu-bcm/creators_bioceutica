@@ -1,19 +1,23 @@
 import Link from "next/link";
-import { createAdminClient } from "@/lib/supabase/server";
+import { createServiceRoleClient } from "@/lib/supabase/admin";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { NewFormButton } from "@/components/dashboard/NewFormButton";
 import { DuplicateFormButton } from "@/components/dashboard/DuplicateFormButton";
 import type { Form } from "@/lib/types";
-import { FileText, Eye } from "lucide-react";
+import { FileText, Eye, User } from "lucide-react";
 
 export default async function DashboardPage() {
-  const supabase = await createAdminClient();
-  const { data: forms, error } = await supabase
-    .from("forms")
-    .select("*")
-    .order("created_at", { ascending: false });
+  const supabase = createServiceRoleClient();
+
+  const [{ data: forms, error }, { data: profiles }] = await Promise.all([
+    supabase
+      .from("forms")
+      .select("*")
+      .order("created_at", { ascending: false }),
+    supabase.from("profiles").select("id, email, full_name"),
+  ]);
 
   if (error) {
     return (
@@ -22,6 +26,9 @@ export default async function DashboardPage() {
       </div>
     );
   }
+
+  // Build a map for O(1) creator lookup
+  const profileMap = new Map((profiles ?? []).map((p) => [p.id, p]));
 
   return (
     <div>
@@ -45,48 +52,63 @@ export default async function DashboardPage() {
         </div>
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-          {forms.map((form: Form) => (
-            <Card key={form.id} className="hover:shadow-md transition-shadow">
-              <CardContent className="p-5">
-                <div className="flex items-start justify-between mb-3">
-                  <h2 className="font-semibold text-slate-900 dark:text-slate-100 leading-tight line-clamp-2 flex-1 mr-2">
-                    {form.title}
-                  </h2>
-                  <Badge variant={form.is_published ? "success" : "secondary"}>
-                    {form.is_published ? "Published" : "Draft"}
-                  </Badge>
-                </div>
-                {form.description && (
-                  <p className="text-sm text-slate-500 dark:text-slate-400 mb-4 line-clamp-2">
-                    {form.description}
+          {forms.map((form: Form) => {
+            const creator = form.user_id ? profileMap.get(form.user_id) : null;
+            return (
+              <Card key={form.id} className="hover:shadow-md transition-shadow">
+                <CardContent className="p-5">
+                  <div className="flex items-start justify-between mb-3">
+                    <h2 className="font-semibold text-slate-900 dark:text-slate-100 leading-tight line-clamp-2 flex-1 mr-2">
+                      {form.title}
+                    </h2>
+                    <Badge
+                      variant={form.is_published ? "success" : "secondary"}
+                    >
+                      {form.is_published ? "Published" : "Draft"}
+                    </Badge>
+                  </div>
+                  {form.description && (
+                    <p className="text-sm text-slate-500 dark:text-slate-400 mb-3 line-clamp-2">
+                      {form.description}
+                    </p>
+                  )}
+                  <div className="flex items-center gap-1.5 mb-3">
+                    <User className="h-3 w-3 text-slate-400 shrink-0" />
+                    <span className="text-xs text-slate-400 truncate">
+                      {creator
+                        ? creator.full_name
+                          ? `${creator.full_name} · ${creator.email}`
+                          : creator.email
+                        : "Unknown"}
+                    </span>
+                  </div>
+                  <p className="text-xs text-slate-400 dark:text-slate-500 mb-4">
+                    {new Date(form.created_at).toLocaleDateString("en-US", {
+                      month: "short",
+                      day: "numeric",
+                      year: "numeric",
+                    })}
                   </p>
-                )}
-                <p className="text-xs text-slate-400 dark:text-slate-500 mb-4">
-                  {new Date(form.created_at).toLocaleDateString("en-US", {
-                    month: "short",
-                    day: "numeric",
-                    year: "numeric",
-                  })}
-                </p>
-                <div className="flex gap-2">
-                  <Button
-                    asChild
-                    size="sm"
-                    variant="outline"
-                    className="flex-1"
-                  >
-                    <Link href={`/dashboard/forms/${form.id}`}>Edit</Link>
-                  </Button>
-                  <DuplicateFormButton formId={form.id} />
-                  <Button asChild size="sm" variant="ghost">
-                    <Link href={`/dashboard/forms/${form.id}/responses`}>
-                      <Eye className="h-4 w-4" />
-                    </Link>
-                  </Button>
-                </div>
-              </CardContent>
-            </Card>
-          ))}
+                  <div className="flex gap-2">
+                    <Button
+                      asChild
+                      size="sm"
+                      variant="outline"
+                      className="flex-1"
+                    >
+                      <Link href={`/dashboard/forms/${form.id}`}>Edit</Link>
+                    </Button>
+                    <DuplicateFormButton formId={form.id} />
+                    <Button asChild size="sm" variant="ghost">
+                      <Link href={`/dashboard/forms/${form.id}/responses`}>
+                        <Eye className="h-4 w-4" />
+                      </Link>
+                    </Button>
+                  </div>
+                </CardContent>
+              </Card>
+            );
+          })}
         </div>
       )}
     </div>

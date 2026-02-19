@@ -1,36 +1,41 @@
-import Link from "next/link";
-import { Button } from "@/components/ui/button";
+import { redirect } from "next/navigation";
+import { createSessionClient } from "@/lib/supabase/server";
+import { createServiceRoleClient } from "@/lib/supabase/admin";
+import { Sidebar } from "@/components/dashboard/Sidebar";
 import { ThemeToggle } from "@/components/ThemeToggle";
 
-export default function DashboardLayout({
+export default async function DashboardLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
+  const session = await createSessionClient();
+  const {
+    data: { user },
+  } = await session.auth.getUser();
+
+  if (!user) redirect("/login");
+
+  const admin = createServiceRoleClient();
+  const { data: profile } = await admin
+    .from("profiles")
+    .select("full_name, role, email")
+    .eq("id", user.id)
+    .single();
+
+  const userRole = (profile?.role ?? "user") as "admin" | "user";
+  const userName = profile?.full_name ?? "";
+  const userEmail = profile?.email ?? user.email ?? "";
+
   return (
-    <div className="min-h-screen bg-slate-50 dark:bg-slate-950">
-      <header className="bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800">
-        <div className="max-w-6xl mx-auto px-4 h-14 flex items-center justify-between">
-          <Link
-            href="/dashboard"
-            className="font-semibold text-slate-900 dark:text-slate-100 text-lg"
-          >
-            Bioceutica Forms
-          </Link>
-          <div className="flex items-center gap-1">
-            <ThemeToggle />
-            <Button
-              asChild
-              variant="ghost"
-              size="sm"
-              className="dark:text-slate-300 dark:hover:text-white dark:hover:bg-slate-800"
-            >
-              <a href="/api/auth/logout">Sign Out</a>
-            </Button>
-          </div>
-        </div>
-      </header>
-      <main className="max-w-6xl mx-auto px-4 py-8">{children}</main>
+    <div className="flex min-h-screen bg-slate-50 dark:bg-slate-950">
+      <Sidebar userRole={userRole} userName={userName} userEmail={userEmail} />
+      <div className="flex-1 flex flex-col min-w-0">
+        <header className="bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800 h-14 flex items-center justify-end px-6 shrink-0">
+          <ThemeToggle />
+        </header>
+        <main className="flex-1 p-6 overflow-auto">{children}</main>
+      </div>
     </div>
   );
 }

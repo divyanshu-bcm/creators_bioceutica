@@ -7,7 +7,13 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
-import { Select } from "@/components/ui/select";
+import {
+  Select,
+  SelectTrigger,
+  SelectValue,
+  SelectContent,
+  SelectItem,
+} from "@/components/ui/select";
 import { cn } from "@/lib/utils";
 
 interface FormRendererProps {
@@ -359,17 +365,19 @@ function FieldRenderer({ field, value, onChange, error }: FieldRendererProps) {
         <div className="space-y-1">
           {label}
           <Select
-            id={field.id}
             value={String(value ?? "")}
-            onChange={(e) => onChange(e.target.value)}
-            className={inputClass}
+            onValueChange={(v) => onChange(v)}
           >
-            <option value="">Select an option…</option>
-            {(field.options ?? []).map((opt) => (
-              <option key={opt} value={opt}>
-                {opt}
-              </option>
-            ))}
+            <SelectTrigger id={field.id} className={inputClass}>
+              <SelectValue placeholder="Select an option…" />
+            </SelectTrigger>
+            <SelectContent>
+              {(field.options ?? []).map((opt) => (
+                <SelectItem key={opt} value={opt}>
+                  {opt}
+                </SelectItem>
+              ))}
+            </SelectContent>
           </Select>
           {helperText}
           {errorText}

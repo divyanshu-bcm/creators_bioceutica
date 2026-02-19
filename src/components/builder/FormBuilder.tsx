@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import type { FormFull, FieldType, FormField } from "@/lib/types";
 import { useFormBuilder } from "@/hooks/useFormBuilder";
@@ -30,6 +30,7 @@ import {
   Loader2,
   Eye,
   X,
+  RefreshCw,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -51,11 +52,18 @@ export function FormBuilder({ form }: FormBuilderProps) {
 
   // Publish state
   const [isPublished, setIsPublished] = useState(form.is_published);
+  const [hasUnpublishedChanges, setHasUnpublishedChanges] = useState(false);
   const [publicUrl, setPublicUrl] = useState<string | null>(
-    form.is_published && form.slug
-      ? `${typeof window !== "undefined" ? window.location.origin : ""}/f/${form.slug}`
-      : null,
+    form.is_published && form.slug ? `/f/${form.slug}` : null,
   );
+
+  // Upgrade relative path → full URL after mount (avoids SSR/client mismatch)
+  useEffect(() => {
+    if (form.is_published && form.slug) {
+      setPublicUrl(`${window.location.origin}/f/${form.slug}`);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
   const [publishLoading, setPublishLoading] = useState(false);
   const [copied, setCopied] = useState(false);
 
@@ -75,6 +83,7 @@ export function FormBuilder({ form }: FormBuilderProps) {
       body: JSON.stringify({ title: formTitle, description: form.description }),
     });
     setEditingTitle(false);
+    if (isPublished) setHasUnpublishedChanges(true);
   }
 
   // ─── Publish / Unpublish ──────────────────────────────────────────────────
@@ -88,6 +97,8 @@ export function FormBuilder({ form }: FormBuilderProps) {
     if (res.ok) {
       setIsPublished(true);
       setPublicUrl(data.publicUrl);
+      setHasUnpublishedChanges(false);
+      router.refresh(); // reload server components so promoted field IDs are fresh
     }
   }
 
@@ -96,6 +107,7 @@ export function FormBuilder({ form }: FormBuilderProps) {
     await fetch(`/api/forms/${form.id}/publish`, { method: "DELETE" });
     setPublishLoading(false);
     setIsPublished(false);
+    setHasUnpublishedChanges(false);
   }
 
   function copyLink() {
@@ -115,27 +127,62 @@ export function FormBuilder({ form }: FormBuilderProps) {
   function handleAddField(type: FieldType) {
     if (!builder.activeStepId) return;
     builder.addField(form.id, builder.activeStepId, type);
+    if (isPublished) setHasUnpublishedChanges(true);
   }
 
   function handleUpdateField(fieldId: string, updates: Partial<FormField>) {
     builder.updateField(form.id, fieldId, updates);
+    if (isPublished) setHasUnpublishedChanges(true);
   }
 
   function handleDeleteField(fieldId: string) {
     if (!activeStep) return;
     builder.deleteField(form.id, activeStep.id, fieldId);
+    if (isPublished) setHasUnpublishedChanges(true);
+  }
+
+  function handleRestoreField(fieldId: string) {
+    if (!activeStep) return;
+    builder.restoreField(form.id, activeStep.id, fieldId);
+  }
+
+  function handleRestoreStep(stepId: string) {
+    builder.restoreStep(form.id, stepId);
   }
 
   function handleMoveField(fieldId: string, dir: "up" | "down") {
     if (!activeStep) return;
     builder.moveField(form.id, activeStep.id, fieldId, dir);
+    if (isPublished) setHasUnpublishedChanges(true);
+  }
+
+  // ─── Step operations ─────────────────────────────────────────────────────
+  function handleAddStep() {
+    builder.addStep(form.id);
+    if (isPublished) setHasUnpublishedChanges(true);
+  }
+
+  function handleDeleteStep(stepId: string) {
+    builder.deleteStep(form.id, stepId);
+    if (isPublished) setHasUnpublishedChanges(true);
+  }
+
+  function handleRenameStep(stepId: string, title: string) {
+    builder.renameStep(form.id, stepId, title);
+    if (isPublished) setHasUnpublishedChanges(true);
   }
 
   // ─── Drag-and-drop ───────────────────────────────────────────────────────
   const [dragId, setDragId] = useState<string | null>(null);
   const [dragOverId, setDragOverId] = useState<string | null>(null);
+  // Only allow drag when pointer is down on the grip handle
+  const canDragRef = useRef<string | null>(null);
 
-  function handleDragStart(fieldId: string) {
+  function handleDragStart(e: React.DragEvent, fieldId: string) {
+    if (canDragRef.current !== fieldId) {
+      e.preventDefault();
+      return;
+    }
     setDragId(fieldId);
   }
 
@@ -163,6 +210,7 @@ export function FormBuilder({ form }: FormBuilderProps) {
       activeStep.id,
       reordered.map((f) => f.id),
     );
+    if (isPublished) setHasUnpublishedChanges(true);
     setDragId(null);
     setDragOverId(null);
   }
@@ -170,6 +218,7 @@ export function FormBuilder({ form }: FormBuilderProps) {
   function handleDragEnd() {
     setDragId(null);
     setDragOverId(null);
+    canDragRef.current = null;
   }
 
   return (
@@ -220,6 +269,22 @@ export function FormBuilder({ form }: FormBuilderProps) {
             <Badge variant={isPublished ? "success" : "secondary"}>
               {isPublished ? "Published" : "Draft"}
             </Badge>
+
+            {isPublished && hasUnpublishedChanges && (
+              <Button
+                size="sm"
+                onClick={handlePublish}
+                disabled={publishLoading}
+                className="bg-amber-500 hover:bg-amber-600 text-white border-0"
+              >
+                {publishLoading ? (
+                  <Loader2 className="h-4 w-4 mr-1.5 animate-spin" />
+                ) : (
+                  <RefreshCw className="h-4 w-4 mr-1.5" />
+                )}
+                Publish Update
+              </Button>
+            )}
 
             <Button
               variant="outline"
@@ -311,20 +376,12 @@ export function FormBuilder({ form }: FormBuilderProps) {
                     value={stepTitleInput}
                     onChange={(e) => setStepTitleInput(e.target.value)}
                     onBlur={() => {
-                      builder.renameStep(
-                        form.id,
-                        step.id,
-                        stepTitleInput || step.title,
-                      );
+                      handleRenameStep(step.id, stepTitleInput || step.title);
                       setEditingStepId(null);
                     }}
                     onKeyDown={(e) => {
                       if (e.key === "Enter") {
-                        builder.renameStep(
-                          form.id,
-                          step.id,
-                          stepTitleInput || step.title,
-                        );
+                        handleRenameStep(step.id, stepTitleInput || step.title);
                         setEditingStepId(null);
                       }
                     }}
@@ -333,6 +390,20 @@ export function FormBuilder({ form }: FormBuilderProps) {
                       width: `${Math.max(60, stepTitleInput.length * 8)}px`,
                     }}
                   />
+                ) : step.pending_delete ? (
+                  /* Pending-delete step — grayed out, not clickable, with restore */
+                  <span className="flex items-center gap-1">
+                    <span className="px-3 py-1.5 rounded-md text-sm font-medium border line-through text-slate-400 border-red-200 bg-red-50 dark:bg-red-950/20 dark:border-red-800/40 dark:text-red-400/60">
+                      {step.title}
+                    </span>
+                    <button
+                      className="ml-1 text-xs text-red-400 hover:text-green-600 transition-colors border border-red-200 dark:border-red-800/40 rounded px-1.5 py-0.5"
+                      onClick={() => handleRestoreStep(step.id)}
+                      title="Undo step deletion"
+                    >
+                      Undo
+                    </button>
+                  </span>
                 ) : (
                   <button
                     onClick={() => builder.setActiveStep(step.id)}
@@ -350,21 +421,22 @@ export function FormBuilder({ form }: FormBuilderProps) {
                     {step.title}
                   </button>
                 )}
-                {builder.steps.length > 1 && (
-                  <button
-                    className="ml-1 text-slate-400 hover:text-red-500 transition-colors"
-                    onClick={() => builder.deleteStep(form.id, step.id)}
-                    title="Delete step"
-                  >
-                    ×
-                  </button>
-                )}
+                {!step.pending_delete &&
+                  builder.steps.filter((s) => !s.pending_delete).length > 1 && (
+                    <button
+                      className="ml-1 text-slate-400 hover:text-red-500 transition-colors"
+                      onClick={() => handleDeleteStep(step.id)}
+                      title="Delete step"
+                    >
+                      ×
+                    </button>
+                  )}
               </div>
             ))}
             <Button
               variant="outline"
               size="sm"
-              onClick={() => builder.addStep(form.id)}
+              onClick={() => handleAddStep()}
               className="shrink-0"
             >
               <Plus className="h-3.5 w-3.5 mr-1" /> Add Step
@@ -392,7 +464,7 @@ export function FormBuilder({ form }: FormBuilderProps) {
               <div
                 key={field.id}
                 draggable
-                onDragStart={() => handleDragStart(field.id)}
+                onDragStart={(e) => handleDragStart(e, field.id)}
                 onDragOver={(e) => handleDragOver(e, field.id)}
                 onDrop={(e) => handleDrop(e, field.id)}
                 onDragEnd={handleDragEnd}
@@ -411,7 +483,14 @@ export function FormBuilder({ form }: FormBuilderProps) {
                   isLast={idx === activeStep.fields.length - 1}
                   onUpdate={handleUpdateField}
                   onDelete={handleDeleteField}
+                  onRestore={handleRestoreField}
                   onMove={handleMoveField}
+                  onDragHandlePointerDown={() => {
+                    canDragRef.current = field.id;
+                  }}
+                  onDragHandlePointerUp={() => {
+                    canDragRef.current = null;
+                  }}
                 />
               </div>
             ))}

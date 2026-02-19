@@ -1,20 +1,20 @@
-// POST /api/auth/logout — clear cookie
-import { cookies } from "next/headers";
+// POST /api/auth/logout — sign out via Supabase
 import { NextResponse } from "next/server";
+import { createSessionClient } from "@/lib/supabase/server";
 
 export async function GET() {
-  const cookieStore = await cookies();
-  cookieStore.delete("bc_auth");
+  const supabase = await createSessionClient();
+  await supabase.auth.signOut();
   return NextResponse.redirect(
     new URL(
       "/login",
-      process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000",
+      process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000",
     ),
   );
 }
 
 export async function POST() {
-  const cookieStore = await cookies();
-  cookieStore.delete("bc_auth");
+  const supabase = await createSessionClient();
+  await supabase.auth.signOut();
   return NextResponse.json({ ok: true });
 }

@@ -1,12 +1,12 @@
 import { NextRequest, NextResponse } from "next/server";
-import { createAdminClient } from "@/lib/supabase/server";
+import { createServiceRoleClient } from "@/lib/supabase/admin";
 
 export async function POST(
   _req: NextRequest,
   { params }: { params: Promise<{ formId: string }> },
 ) {
   const { formId } = await params;
-  const supabase = await createAdminClient();
+  const supabase = createServiceRoleClient();
 
   // 1. Fetch original form
   const { data: original, error: formErr } = await supabase

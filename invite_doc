@@ -1,0 +1,338 @@
+# Complete Invitation System Documentation
+
+## Overview
+
+The invitation system allows **admin users** to invite new users via a token-based email link. The invited user clicks the link, sets a password, and is automatically assigned a role and permissions.
+
+---
+
+## Architecture
+
+```
+Admin → InviteUserDialog → createInvitation() → Supabase RPC → user_invitations table
+                                                      ↓
+New User → /accept-invitation?token=xxx → acceptInvitation() → auth.signUp() + assign role/permissions
+```
+
+---
+
+## Database Schema
+
+### Tables Required
+
+#### `user_roles`
+```sql
+CREATE TABLE user_roles (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id UUID REFERENCES auth.users(id) ON DELETE CASCADE UNIQUE,
+  role TEXT CHECK (role IN ('admin', 'user')) NOT NULL DEFAULT 'user',
+  created_at TIMESTAMPTZ DEFAULT NOW(),
+  updated_at TIMESTAMPTZ DEFAULT NOW()
+);
+```
+
+#### `user_invitations`
+```sql
+CREATE TABLE user_invitations (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  email TEXT NOT NULL,
+  token TEXT NOT NULL UNIQUE,
+  invited_by UUID REFERENCES auth.users(id),
+  role TEXT CHECK (role IN ('admin', 'user')) NOT NULL DEFAULT 'user',
+  permissions JSONB DEFAULT '[]',
+  expires_at TIMESTAMPTZ NOT NULL,
+  accepted_at TIMESTAMPTZ DEFAULT NULL,
+  created_at TIMESTAMPTZ DEFAULT NOW()
+);
+```
+
+#### `permissions`
+```sql
+CREATE TABLE permissions (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  feature TEXT NOT NULL,
+  action TEXT CHECK (action IN ('view', 'edit')) NOT NULL,
+  description TEXT,
+  UNIQUE(feature, action)
+);
+```
+
+#### `user_permissions`
+```sql
+CREATE TABLE user_permissions (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id UUID REFERENCES auth.users(id) ON DELETE CASCADE,
+  permission_id UUID REFERENCES permissions(id) ON DELETE CASCADE,
+  granted_at TIMESTAMPTZ DEFAULT NOW(),
+  granted_by UUID REFERENCES auth.users(id),
+  UNIQUE(user_id, permission_id)
+);
+```
+
+---
+
+## Supabase SQL Functions (SECURITY DEFINER)
+
+All functions use `SECURITY DEFINER` to bypass RLS safely.
+
+### 1. `is_admin_user(user_uuid UUID) → BOOLEAN`
+```sql
+CREATE OR REPLACE FUNCTION is_admin_user(user_uuid UUID)
+RETURNS BOOLEAN
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public
+AS $$
+BEGIN
+  RETURN EXISTS (
+    SELECT 1 FROM user_roles
+    WHERE user_id = user_uuid AND role = 'admin'
+  );
+END;
+$$;
+
+GRANT EXECUTE ON FUNCTION is_admin_user(UUID) TO authenticated;
+```
+
+### 2. `get_my_role() → TABLE`
+```sql
+CREATE OR REPLACE FUNCTION get_my_role()
+RETURNS TABLE (id UUID, user_id UUID, role TEXT, created_at TIMESTAMPTZ, updated_at TIMESTAMPTZ)
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public
+AS $$
+BEGIN
+  RETURN QUERY
+  SELECT user_roles.id, user_roles.user_id, user_roles.role::TEXT,
+         user_roles.created_at, user_roles.updated_at
+  FROM user_roles
+  WHERE user_roles.user_id = auth.uid();
+END;
+$$;
+
+GRANT EXECUTE ON FUNCTION get_my_role() TO authenticated;
+```
+
+### 3. `create_user_invitation(...) → TABLE`
+```sql
+CREATE OR REPLACE FUNCTION create_user_invitation(
+  p_email TEXT,
+  p_token TEXT,
+  p_role TEXT,
+  p_permissions TEXT[],
+  p_expires_at TIMESTAMPTZ
+)
+RETURNS TABLE (
+  id UUID, email TEXT, token TEXT, invited_by UUID, role TEXT,
+  permissions JSONB, expires_at TIMESTAMPTZ, accepted_at TIMESTAMPTZ, created_at TIMESTAMPTZ
+)
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public
+AS $$
+DECLARE
+  v_invitation_id UUID;
+  v_current_user_id UUID;
+BEGIN
+  v_current_user_id := auth.uid();
+
+  IF v_current_user_id IS NULL THEN
+    RAISE EXCEPTION 'Not authenticated';
+  END IF;
+
+  IF NOT is_admin_user(v_current_user_id) THEN
+    RAISE EXCEPTION 'Only admins can create invitations';
+  END IF;
+
+  INSERT INTO user_invitations (email, token, invited_by, role, permissions, expires_at)
+  VALUES (p_email, p_token, v_current_user_id, p_role, to_jsonb(p_permissions), p_expires_at)
+  RETURNING user_invitations.id INTO v_invitation_id;
+
+  RETURN QUERY
+  SELECT ui.id, ui.email::TEXT, ui.token::TEXT, ui.invited_by, ui.role::TEXT,
+         ui.permissions, ui.expires_at, ui.accepted_at, ui.created_at
+  FROM user_invitations ui
+  WHERE ui.id = v_invitation_id;
+END;
+$$;
+
+GRANT EXECUTE ON FUNCTION create_user_invitation(TEXT, TEXT, TEXT, TEXT[], TIMESTAMPTZ) TO authenticated;
+```
+
+### 4. `accept_invitation(p_invitation_id UUID, p_user_id UUID, p_role TEXT) → VOID`
+```sql
+CREATE OR REPLACE FUNCTION accept_invitation(
+  p_invitation_id UUID,
+  p_user_id UUID,
+  p_role TEXT
+)
+RETURNS VOID
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public
+AS $$
+BEGIN
+  INSERT INTO user_roles (user_id, role, updated_at)
+  VALUES (p_user_id, p_role, NOW())
+  ON CONFLICT (user_id)
+  DO UPDATE SET role = EXCLUDED.role, updated_at = NOW();
+
+  UPDATE user_invitations SET accepted_at = NOW()
+  WHERE id = p_invitation_id;
+END;
+$$;
+
+GRANT EXECUTE ON FUNCTION accept_invitation(UUID, UUID, TEXT) TO authenticated;
+```
+
+---
+
+## RLS Policies
+
+```sql
+-- Enable RLS
+ALTER TABLE user_roles ENABLE ROW LEVEL SECURITY;
+ALTER TABLE user_invitations ENABLE ROW LEVEL SECURITY;
+ALTER TABLE user_permissions ENABLE ROW LEVEL SECURITY;
+ALTER TABLE permissions ENABLE ROW LEVEL SECURITY;
+
+-- user_roles
+CREATE POLICY "users_read_own_role" ON user_roles FOR SELECT USING (auth.uid() = user_id);
+CREATE POLICY "admins_read_all_roles" ON user_roles FOR SELECT USING (is_admin_user(auth.uid()));
+CREATE POLICY "admins_insert_roles" ON user_roles FOR INSERT WITH CHECK (is_admin_user(auth.uid()));
+CREATE POLICY "admins_update_roles" ON user_roles FOR UPDATE
+  USING (is_admin_user(auth.uid())) WITH CHECK (is_admin_user(auth.uid()));
+
+-- user_invitations
+CREATE POLICY "admins_create_invitations" ON user_invitations FOR INSERT
+  WITH CHECK (is_admin_user(auth.uid()));
+CREATE POLICY "admins_view_invitations" ON user_invitations FOR SELECT
+  USING (is_admin_user(auth.uid()));
+CREATE POLICY "public_read_invitations_by_token" ON user_invitations FOR SELECT
+  USING (true); -- Safe: tokens are UUIDs and expire
+CREATE POLICY "admins_update_invitations" ON user_invitations FOR UPDATE
+  USING (is_admin_user(auth.uid()));
+
+-- user_permissions
+CREATE POLICY "users_read_own_permissions" ON user_permissions FOR SELECT
+  USING (auth.uid() = user_id);
+CREATE POLICY "admins_manage_permissions" ON user_permissions FOR ALL
+  USING (is_admin_user(auth.uid()));
+
+-- permissions (lookup table)
+CREATE POLICY "authenticated_view_permissions" ON permissions FOR SELECT
+  USING (auth.uid() IS NOT NULL);
+```
+
+---
+
+## TypeScript Interfaces
+
+```typescript
+// lib/auth.ts
+
+export interface UserInvitation {
+  id: string
+  email: string
+  token: string
+  invited_by: string
+  role: 'admin' | 'user'
+  permissions: string[]   // format: ["feature:action", ...]
+  expires_at: string
+  accepted_at: string | null
+  created_at: string
+}
+
+export interface Permission {
+  id: string
+  feature: string
+  action: 'view' | 'edit'
+  description: string | null
+}
+```
+
+---
+
+## Key Functions in `lib/auth.ts`
+
+### `createInvitation(email, role, permissions, expiresInDays?)`
+- Generates a `crypto.randomUUID()` token
+- Calls Supabase RPC `create_user_invitation`
+- Returns `{ data: UserInvitation | null, error }`
+
+### `getInvitationByToken(token)`
+- Queries `user_invitations` directly
+- Filters: `token = ?`, `accepted_at IS NULL`, `expires_at > NOW()`
+- Returns `UserInvitation | null`
+
+### `acceptInvitation(token, password)`
+1. Calls `getInvitationByToken(token)` to validate
+2. Calls `supabaseAuth.auth.signUp({ email, password })`
+3. Upserts `user_roles` with the invited role
+4. Resolves permission strings (`feature:action`) to permission IDs
+5. Inserts into `user_permissions`
+6. Updates `user_invitations.accepted_at = NOW()`
+7. Returns `{ data: signUpData, error }`
+
+---
+
+## UI Components
+
+### `InviteUserDialog` (`components/invite-user-dialog.tsx`)
+- **Where used:** `app/admin/users/page.tsx`
+- **Fields:** `email`, `role` (admin/user), `permissions` (only shown when role = 'user')
+- **On submit:**
+  1. Converts permission IDs → `feature:action` strings
+  2. Calls `createInvitation()`
+  3. Generates URL: `{origin}/accept-invitation?token={token}`
+  4. Copies URL to clipboard via `navigator.clipboard.writeText()`
+  5. Shows toast notifications
+
+### `AcceptInvitationPage` (`app/accept-invitation/page.tsx`)
+- **Route:** `/accept-invitation?token=<uuid>`
+- **On load:** Calls `getInvitationByToken(token)` to validate and display invitation details
+- **Form:** Password + Confirm Password (min 8 chars)
+- **On submit:** Calls `acceptInvitation(token, password)`, then redirects to `/`
+
+### `AuthProtection` (`components/auth-protection.tsx`)
+- Skips auth redirect for `/accept-invitation` path (unauthenticated users need access)
+
+---
+
+## Complete Flow
+
+```
+1. Admin opens /admin/users
+2. Admin clicks "Invite User"
+3. InviteUserDialog opens
+4. Admin fills: email, role, optional permissions
+5. Submit → createInvitation() → RPC create_user_invitation
+   → row inserted in user_invitations with UUID token, 7-day expiry
+6. Invitation URL copied to clipboard:
+   https://yourapp.com/accept-invitation?token=<uuid>
+7. Admin manually shares URL with invitee
+
+8. Invitee opens URL in browser
+9. AcceptInvitationPage loads → getInvitationByToken(token)
+   → validates: exists, not accepted, not expired
+10. Invitee enters password (min 8 chars)
+11. Submit → acceptInvitation(token, password):
+    a. supabase.auth.signUp(email, password)
+    b. upsert user_roles (invited role)
+    c. insert user_permissions (if any)
+    d. update user_invitations.accepted_at = NOW()
+12. User redirected to / (home page)
+```
+
+---
+
+## Important Notes
+
+| Concern | Solution |
+|---|---|
+| RLS infinite recursion | All permission checks use `SECURITY DEFINER` functions |
+| Unauthenticated invitation acceptance | `public_read_invitations_by_token` RLS policy + `AuthProtection` bypass |
+| Token security | Tokens are UUIDs (v4), expire after 7 days, invalidated after first use |
+| Email delivery | **Not implemented** — URL is copied to clipboard and must be shared manually |
+| Existing user signup conflict | `acceptInvitation` falls back to `signInWithPassword` if user already exists |

@@ -1,13 +1,19 @@
+import { createServerClient } from "@supabase/ssr";
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 
-const AUTH_COOKIE = "bc_auth";
-const AUTH_VALUE = process.env.AUTH_COOKIE_VALUE ?? "bioceutica-auth-v1";
+// Routes that never require authentication
+const PUBLIC_PREFIXES = [
+  "/login",
+  "/f/",
+  "/_next",
+  "/favicon",
+  "/api/auth/",
+  "/auth/", // callback + update-password
+  "/accept-invitation", // token-based invite acceptance
+  "/api/accept-invitation", // accept-invitation API
+];
 
-// Routes that are ALWAYS public — no cookie check
-const PUBLIC_PREFIXES = ["/login", "/f/", "/_next", "/favicon", "/api/auth/"];
-
-// POST /api/submissions is public (form submit from public form)
 function isPublicApiRoute(request: NextRequest): boolean {
   const { pathname } = request.nextUrl;
   const m = request.method;
@@ -19,22 +25,47 @@ function isPublicApiRoute(request: NextRequest): boolean {
   );
 }
 
-export function proxy(request: NextRequest) {
+export async function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
-  // Always allow public prefixes
   if (PUBLIC_PREFIXES.some((p) => pathname.startsWith(p))) {
     return NextResponse.next();
   }
 
-  // Allow certain API routes to be public
   if (isPublicApiRoute(request)) {
     return NextResponse.next();
   }
 
-  // Check auth cookie
-  const token = request.cookies.get(AUTH_COOKIE)?.value;
-  if (token !== AUTH_VALUE) {
+  // Build a response we can attach refreshed session cookies to
+  let response = NextResponse.next({ request });
+
+  const supabase = createServerClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+    {
+      cookies: {
+        getAll() {
+          return request.cookies.getAll();
+        },
+        setAll(cookiesToSet) {
+          // Write refreshed cookies back onto both request and response
+          cookiesToSet.forEach(({ name, value }) =>
+            request.cookies.set(name, value),
+          );
+          response = NextResponse.next({ request });
+          cookiesToSet.forEach(({ name, value, options }) =>
+            response.cookies.set(name, value, options),
+          );
+        },
+      },
+    },
+  );
+
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (!user) {
     if (pathname.startsWith("/api/")) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
@@ -43,7 +74,7 @@ export function proxy(request: NextRequest) {
     return NextResponse.redirect(loginUrl);
   }
 
-  return NextResponse.next();
+  return response;
 }
 
 export const config = {

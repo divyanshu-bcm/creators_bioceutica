@@ -1,12 +1,12 @@
 // GET /api/submissions/[formId] — fetch all submissions for a form (PROTECTED)
 import { NextResponse } from "next/server";
-import { createAdminClient } from "@/lib/supabase/server";
+import { createServiceRoleClient } from "@/lib/supabase/admin";
 
 type Params = { params: Promise<{ formId: string }> };
 
 export async function GET(_req: Request, { params }: Params) {
   const { formId } = await params;
-  const supabase = await createAdminClient();
+  const supabase = createServiceRoleClient();
 
   const { data, error } = await supabase
     .from("form_submissions")

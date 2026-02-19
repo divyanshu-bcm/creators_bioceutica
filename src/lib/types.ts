@@ -20,6 +20,7 @@ export interface Form {
   description: string | null;
   slug: string | null;
   is_published: boolean;
+  user_id: string | null;
   created_at: string;
   updated_at: string;
 }
@@ -29,6 +30,9 @@ export interface FormStep {
   form_id: string;
   title: string;
   step_order: number;
+  is_draft: boolean;
+  draft_parent_id: string | null;
+  pending_delete: boolean;
   created_at: string;
 }
 
@@ -46,6 +50,9 @@ export interface FormField {
   image_url: string | null;
   image_alt: string | null;
   validation: Record<string, unknown> | null;
+  is_draft: boolean;
+  draft_parent_id: string | null;
+  pending_delete: boolean;
   created_at: string;
 }
 
