@@ -3,6 +3,15 @@ import { createSessionClient } from "@/lib/supabase/server";
 import { createServiceRoleClient } from "@/lib/supabase/admin";
 import { UsersTable } from "@/components/dashboard/UsersTable";
 
+interface InvitationRow {
+  email: string;
+  full_name: string | null;
+  role: "admin" | "user";
+  created_at: string;
+  expires_at: string;
+  status: "pending" | "accepted" | "expired";
+}
+
 export default async function UsersPage() {
   const session = await createSessionClient();
   const {
@@ -36,22 +45,22 @@ export default async function UsersPage() {
     );
   }
 
-  // Fetch pending invitations to annotate status
+  // Fetch pending invitations
   const { data: pendingInvites } = await service
     .from("invitations")
-    .select("email")
+    .select("email, full_name, role, created_at, expires_at, status")
     .eq("status", "pending");
-
-  const pendingEmails = new Set(
-    (pendingInvites ?? []).map((i: { email: string }) => i.email),
-  );
 
   const users = (profiles ?? []).map((p) => ({
     ...p,
-    status: (pendingEmails.has(p.email) ? "pending" : "active") as
-      | "pending"
-      | "active",
+    status: "active" as const,
   }));
 
-  return <UsersTable initialUsers={users} currentUserId={user.id} />;
+  return (
+    <UsersTable
+      initialUsers={users}
+      initialInvitations={(pendingInvites ?? []) as InvitationRow[]}
+      currentUserId={user.id}
+    />
+  );
 }
