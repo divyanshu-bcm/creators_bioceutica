@@ -8,11 +8,15 @@ import type {
   FormField,
   WelcomePage,
   WelcomeTerm,
+  ElementColorStyle,
+  FormUiStyles,
+  StepElementStyles,
 } from "@/lib/types";
 import { defaultWelcomePage } from "@/lib/types";
 import { useFormBuilder } from "@/hooks/useFormBuilder";
 import { FieldToolbar } from "./FieldToolbar";
 import { FieldCard } from "./FieldCard";
+import { ElementStyleEditor } from "./ElementStyleEditor";
 import { FormRenderer } from "@/components/renderer/FormRenderer";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -165,6 +169,45 @@ export function FormBuilder({ form }: FormBuilderProps) {
     setWelcomePage(updated);
     saveWelcomePage(updated);
   }
+
+  function upsertUiStyles(next: FormUiStyles | undefined) {
+    handleWelcomePageChange({ ...welcomePage, ui_styles: next });
+  }
+
+  function updateStartButtonStyle(style: ElementColorStyle | undefined) {
+    const current = { ...(welcomePage.ui_styles ?? {}) };
+    if (style) {
+      current.start_button = style;
+    } else {
+      delete current.start_button;
+    }
+    upsertUiStyles(Object.keys(current).length ? current : undefined);
+  }
+
+  function updateNavigationButtonStyle(
+    button: keyof StepElementStyles,
+    style: ElementColorStyle | undefined,
+  ) {
+    const current = { ...(welcomePage.ui_styles ?? {}) };
+    const currentNavStyles = { ...(current.navigation_buttons ?? {}) };
+
+    if (style) {
+      currentNavStyles[button] = style;
+    } else {
+      delete currentNavStyles[button];
+    }
+
+    if (Object.keys(currentNavStyles).length) {
+      current.navigation_buttons = currentNavStyles;
+    } else {
+      delete current.navigation_buttons;
+    }
+
+    upsertUiStyles(Object.keys(current).length ? current : undefined);
+  }
+
+  const navigationButtonStyles =
+    welcomePage.ui_styles?.navigation_buttons ?? {};
 
   // ─── Field operations forwarded to hook ──────────────────────────────────
   function handleAddField(type: FieldType) {
@@ -515,6 +558,7 @@ export function FormBuilder({ form }: FormBuilderProps) {
             <WelcomePageEditor
               welcomePage={welcomePage}
               onChange={handleWelcomePageChange}
+              onStartButtonStyleChange={updateStartButtonStyle}
             />
           ) : (
             <div className="space-y-3">
@@ -596,6 +640,35 @@ export function FormBuilder({ form }: FormBuilderProps) {
                 Edit Welcome Page
               </Button>
             )}
+          </div>
+
+          <div className="mt-4 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl p-4">
+            <p className="text-xs font-semibold text-slate-400 dark:text-slate-500 uppercase tracking-wide mb-2">
+              Form Button Colors
+            </p>
+            <div className="space-y-3">
+              <ElementStyleEditor
+                title="Previous button"
+                value={navigationButtonStyles.prev_button}
+                onChange={(style) =>
+                  updateNavigationButtonStyle("prev_button", style)
+                }
+              />
+              <ElementStyleEditor
+                title="Next button"
+                value={navigationButtonStyles.next_button}
+                onChange={(style) =>
+                  updateNavigationButtonStyle("next_button", style)
+                }
+              />
+              <ElementStyleEditor
+                title="Submit button"
+                value={navigationButtonStyles.submit_button}
+                onChange={(style) =>
+                  updateNavigationButtonStyle("submit_button", style)
+                }
+              />
+            </div>
           </div>
 
           <div className="mt-4 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl p-4">
@@ -687,11 +760,13 @@ export function FormBuilder({ form }: FormBuilderProps) {
 interface WelcomePageEditorProps {
   welcomePage: WelcomePage;
   onChange: (updated: WelcomePage) => void;
+  onStartButtonStyleChange: (style: ElementColorStyle | undefined) => void;
 }
 
 function WelcomePageEditor({
   welcomePage: wp,
   onChange,
+  onStartButtonStyleChange,
 }: WelcomePageEditorProps) {
   const [uploading, setUploading] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -820,6 +895,21 @@ function WelcomePageEditor({
         <p className="text-xs text-slate-400 mt-1.5">
           This text is displayed to respondents before they start the form.
         </p>
+        <div className="mt-3">
+          <ElementStyleEditor
+            title="Welcome text colors"
+            value={wp.ui_styles?.welcome_text}
+            onChange={(style) =>
+              onChange({
+                ...wp,
+                ui_styles: {
+                  ...(wp.ui_styles ?? {}),
+                  welcome_text: style,
+                },
+              })
+            }
+          />
+        </div>
       </div>
 
       {/* ── T&C section ── */}
@@ -906,6 +996,19 @@ function WelcomePageEditor({
             >
               <Plus className="h-3.5 w-3.5 mr-1" /> Add T&amp;C
             </Button>
+            <ElementStyleEditor
+              title="T&C element colors"
+              value={wp.ui_styles?.tnc_element}
+              onChange={(style) =>
+                onChange({
+                  ...wp,
+                  ui_styles: {
+                    ...(wp.ui_styles ?? {}),
+                    tnc_element: style,
+                  },
+                })
+              }
+            />
           </div>
         ) : (
           <p className="text-sm text-slate-400">
@@ -932,6 +1035,13 @@ function WelcomePageEditor({
           The text shown on the continue button. Defaults to
           &ldquo;Start&rdquo;.
         </p>
+        <div className="mt-3">
+          <ElementStyleEditor
+            title="Start button colors"
+            value={wp.ui_styles?.start_button}
+            onChange={onStartButtonStyleChange}
+          />
+        </div>
       </div>
     </div>
   );

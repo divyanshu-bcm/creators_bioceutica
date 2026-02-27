@@ -1,7 +1,8 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import type { FormFull, FormField } from "@/lib/types";
+import type { CSSProperties } from "react";
+import type { FormFull, FormField, ElementColorStyle } from "@/lib/types";
 import { useStepProgress } from "@/hooks/useStepProgress";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -14,11 +15,25 @@ import {
   SelectContent,
   SelectItem,
 } from "@/components/ui/select";
+import { Copyright } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 interface FormRendererProps {
   form: FormFull;
   previewMode?: boolean;
+}
+
+function toCssStyle(style?: ElementColorStyle): CSSProperties | undefined {
+  if (!style) return undefined;
+  const css: CSSProperties = {};
+  if (style.text_color) css.color = style.text_color;
+  if (style.background_color) css.backgroundColor = style.background_color;
+  if (style.border_color) css.borderColor = style.border_color;
+  return Object.keys(css).length ? css : undefined;
+}
+
+function getFieldStyle(field: FormField): ElementColorStyle | undefined {
+  return field.validation?.appearance;
 }
 
 export function FormRenderer({ form, previewMode = false }: FormRendererProps) {
@@ -71,6 +86,9 @@ export function FormRenderer({ form, previewMode = false }: FormRendererProps) {
   }
 
   const step = form.steps[currentStep];
+  const stepButtonStyles =
+    wp?.ui_styles?.navigation_buttons ??
+    wp?.ui_styles?.step_elements?.[step?.id ?? ""];
 
   function getAnswer(fieldId: string): unknown {
     return answers[fieldId] ?? "";
@@ -91,6 +109,7 @@ export function FormRenderer({ form, previewMode = false }: FormRendererProps) {
     const newErrors: Record<string, string> = {};
     for (const field of step.fields) {
       if (field.field_type === "image") continue;
+      if (field.field_type === "paragraph") continue;
       if (field.is_required) {
         const val = answers[field.id];
         if (
@@ -152,83 +171,102 @@ export function FormRenderer({ form, previewMode = false }: FormRendererProps) {
   // ─── Welcome page ─────────────────────────────────────────────────────────
   if (phase === "welcome" && wp) {
     return (
-      <div className="min-h-screen bg-slate-100">
-        <div className="max-w-xl mx-auto px-4 py-12">
-          <div className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
-            <div className="p-8 sm:p-10 space-y-8">
-              {/* Logo */}
-              {wp.logo_url && (
-                <div className="flex justify-center">
-                  <img
-                    src={wp.logo_url}
-                    alt={wp.logo_alt ?? ""}
-                    className="max-h-24 max-w-full object-contain"
-                  />
+      <div className="min-h-screen bg-slate-100 flex flex-col">
+        <div className="flex-1">
+          <div className="max-w-xl mx-auto px-4 py-12">
+            <div className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
+              <div className="p-8 sm:p-10 space-y-8">
+                {/* Logo */}
+                {wp.logo_url && (
+                  <div className="flex justify-center">
+                    <img
+                      src={wp.logo_url}
+                      alt={wp.logo_alt ?? ""}
+                      className="max-h-24 max-w-full object-contain"
+                    />
+                  </div>
+                )}
+
+                {/* Form title */}
+                <div className="text-center">
+                  <h1 className="text-3xl font-bold text-slate-900">
+                    {form.title}
+                  </h1>
                 </div>
-              )}
 
-              {/* Form title */}
-              <div className="text-center">
-                <h1 className="text-3xl font-bold text-slate-900">
-                  {form.title}
-                </h1>
-              </div>
+                {/* Welcome text */}
+                {wp.text && (
+                  <p
+                    className="text-slate-600 whitespace-pre-wrap text-center leading-relaxed"
+                    style={toCssStyle(wp.ui_styles?.welcome_text)}
+                  >
+                    {wp.text}
+                  </p>
+                )}
 
-              {/* Welcome text */}
-              {wp.text && (
-                <p className="text-slate-600 whitespace-pre-wrap text-center leading-relaxed">
-                  {wp.text}
-                </p>
-              )}
-
-              {/* T&C checkboxes */}
-              {wp.terms_enabled && wp.terms.length > 0 && (
-                <div className="space-y-3 pt-2 border-t border-slate-100">
-                  {wp.terms.map((term) => (
-                    <label
-                      key={term.id}
-                      className="flex items-start gap-3 cursor-pointer"
-                    >
-                      <input
-                        type="checkbox"
-                        checked={!!tcAnswers[term.id]}
-                        onChange={(e) =>
-                          setTcAnswers((prev) => ({
-                            ...prev,
-                            [term.id]: e.target.checked,
-                          }))
-                        }
-                        className="h-4 w-4 rounded mt-0.5 shrink-0"
-                      />
-                      <span className="text-sm text-slate-700">
-                        {term.label}
-                        {term.required && (
-                          <span className="text-red-500 ml-1">*</span>
+                {/* T&C checkboxes */}
+                {wp.terms_enabled && wp.terms.length > 0 && (
+                  <div className="space-y-3 pt-2 border-t border-slate-100">
+                    {wp.terms.map((term) => (
+                      <label
+                        key={term.id}
+                        className={cn(
+                          "flex items-start gap-3 cursor-pointer rounded-md px-2 py-1",
+                          wp.ui_styles?.tnc_element?.border_color && "border",
                         )}
-                      </span>
-                    </label>
-                  ))}
-                  {tcError && (
-                    <p className="text-sm text-red-600">
-                      Please accept all required terms to continue.
-                    </p>
-                  )}
-                </div>
-              )}
+                        style={toCssStyle(wp.ui_styles?.tnc_element)}
+                      >
+                        <input
+                          type="checkbox"
+                          checked={!!tcAnswers[term.id]}
+                          onChange={(e) =>
+                            setTcAnswers((prev) => ({
+                              ...prev,
+                              [term.id]: e.target.checked,
+                            }))
+                          }
+                          className="h-4 w-4 rounded mt-0.5 shrink-0"
+                        />
+                        <span
+                          className="text-sm text-slate-700"
+                          style={
+                            wp.ui_styles?.tnc_element?.text_color
+                              ? { color: wp.ui_styles.tnc_element.text_color }
+                              : undefined
+                          }
+                        >
+                          {term.label}
+                          {term.required && (
+                            <span className="text-red-500 ml-1">*</span>
+                          )}
+                        </span>
+                      </label>
+                    ))}
+                    {tcError && (
+                      <p className="text-sm text-red-600">
+                        Please accept all required terms to continue.
+                      </p>
+                    )}
+                  </div>
+                )}
 
-              {/* Start button */}
-              <Button
-                className="w-full h-14 text-base font-semibold tracking-wide"
-                onClick={handleWelcomeContinue}
-              >
-                <span className="flex items-center justify-center gap-2 w-full">
-                  {wp.button_label?.trim() || "Start"}
-                  <span aria-hidden>→</span>
-                </span>
-              </Button>
+                {/* Start button */}
+                <Button
+                  className="w-full h-14 text-base font-semibold tracking-wide"
+                  onClick={handleWelcomeContinue}
+                  style={toCssStyle(wp.ui_styles?.start_button)}
+                >
+                  <span className="flex items-center justify-center gap-2 w-full">
+                    {wp.button_label?.trim() || "Start"}
+                    <span aria-hidden>→</span>
+                  </span>
+                </Button>
+              </div>
             </div>
           </div>
         </div>
+
+        <PublicFormCopyright visible={!previewMode} />
       </div>
     );
   }
@@ -236,118 +274,165 @@ export function FormRenderer({ form, previewMode = false }: FormRendererProps) {
   // ─── Thank you screen ─────────────────────────────────────────────────────
   if (submitted) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-slate-50 px-4">
-        <div className="text-center max-w-sm">
-          <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
-            <svg
-              className="h-8 w-8 text-green-600"
-              fill="none"
-              viewBox="0 0 24 24"
-              stroke="currentColor"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M5 13l4 4L19 7"
-              />
-            </svg>
+      <div className="min-h-screen bg-slate-50 px-4 flex flex-col">
+        <div className="flex-1 flex items-center justify-center">
+          <div className="text-center max-w-sm">
+            <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
+              <svg
+                className="h-8 w-8 text-green-600"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M5 13l4 4L19 7"
+                />
+              </svg>
+            </div>
+            <h1 className="text-2xl font-bold text-slate-900 mb-2">
+              Thank you!
+            </h1>
+            <p className="text-slate-500">
+              Your response has been submitted successfully.
+            </p>
           </div>
-          <h1 className="text-2xl font-bold text-slate-900 mb-2">Thank you!</h1>
-          <p className="text-slate-500">
-            Your response has been submitted successfully.
-          </p>
         </div>
+
+        <PublicFormCopyright visible={!previewMode} />
       </div>
     );
   }
 
   // ─── Form ─────────────────────────────────────────────────────────────────
   return (
-    <div className="min-h-screen bg-slate-100">
-      <div className="max-w-xl mx-auto px-4 py-10">
-        {/* Form header */}
-        <div className="mb-6 text-center">
-          <h1 className="text-3xl font-bold text-slate-900">{form.title}</h1>
-          {form.description && (
-            <p className="text-slate-500 mt-2">{form.description}</p>
+    <div className="min-h-screen bg-slate-100 flex flex-col">
+      <div className="flex-1">
+        <div className="max-w-xl mx-auto px-4 py-10">
+          {/* Form header */}
+          <div className="mb-6 text-center">
+            <h1 className="text-3xl font-bold text-slate-900">{form.title}</h1>
+            {form.description && (
+              <p className="text-slate-500 mt-2">{form.description}</p>
+            )}
+          </div>
+
+          {/* Progress bar (multi-step only) */}
+          {totalSteps > 1 && (
+            <div className="mb-6">
+              <div className="flex items-center justify-between text-sm text-slate-500 mb-2">
+                <span className="font-medium">{step.title}</span>
+                <span>
+                  {currentStep + 1} / {totalSteps}
+                </span>
+              </div>
+              <div className="h-1.5 bg-slate-200 rounded-full overflow-hidden">
+                <div
+                  className="h-full bg-slate-900 rounded-full transition-all duration-500"
+                  style={{
+                    width: `${((currentStep + 1) / totalSteps) * 100}%`,
+                  }}
+                />
+              </div>
+            </div>
+          )}
+
+          {/* Fields card */}
+          <div className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
+            <div className="p-6 sm:p-8 space-y-6">
+              {step.fields.map((field) => (
+                <FieldRenderer
+                  key={field.id}
+                  field={field}
+                  value={getAnswer(field.id)}
+                  onChange={(v) => setAnswer(field.id, v)}
+                  error={errors[field.id]}
+                />
+              ))}
+
+              {step.fields.length === 0 && (
+                <p className="text-slate-400 text-center py-8">
+                  This step has no fields.
+                </p>
+              )}
+            </div>
+
+            {/* Navigation */}
+            <div className="px-6 sm:px-8 pb-6 sm:pb-8 flex items-center justify-between gap-3">
+              {currentStep > 0 ? (
+                <Button
+                  variant="outline"
+                  onClick={handleBack}
+                  style={toCssStyle(stepButtonStyles?.prev_button)}
+                  className={cn(
+                    stepButtonStyles?.prev_button?.border_color && "border",
+                  )}
+                >
+                  ← Back
+                </Button>
+              ) : (
+                <div />
+              )}
+              {currentStep < totalSteps - 1 ? (
+                <Button
+                  onClick={handleNext}
+                  className={cn(
+                    "min-w-25",
+                    stepButtonStyles?.next_button?.border_color && "border",
+                  )}
+                  style={toCssStyle(stepButtonStyles?.next_button)}
+                >
+                  Next →
+                </Button>
+              ) : (
+                <Button
+                  onClick={handleSubmit}
+                  disabled={submitting}
+                  className={cn(
+                    "min-w-25",
+                    stepButtonStyles?.submit_button?.border_color && "border",
+                  )}
+                  style={toCssStyle(stepButtonStyles?.submit_button)}
+                >
+                  {submitting
+                    ? "Submitting…"
+                    : previewMode
+                      ? "Submit (Preview)"
+                      : "Submit"}
+                </Button>
+              )}
+            </div>
+          </div>
+
+          {/* Error */}
+          {submitError && (
+            <div className="mt-4 text-sm text-red-600 bg-red-50 border border-red-200 rounded-md px-4 py-3">
+              {submitError}
+            </div>
           )}
         </div>
-
-        {/* Progress bar (multi-step only) */}
-        {totalSteps > 1 && (
-          <div className="mb-6">
-            <div className="flex items-center justify-between text-sm text-slate-500 mb-2">
-              <span className="font-medium">{step.title}</span>
-              <span>
-                {currentStep + 1} / {totalSteps}
-              </span>
-            </div>
-            <div className="h-1.5 bg-slate-200 rounded-full overflow-hidden">
-              <div
-                className="h-full bg-slate-900 rounded-full transition-all duration-500"
-                style={{ width: `${((currentStep + 1) / totalSteps) * 100}%` }}
-              />
-            </div>
-          </div>
-        )}
-
-        {/* Fields card */}
-        <div className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
-          <div className="p-6 sm:p-8 space-y-6">
-            {step.fields.map((field) => (
-              <FieldRenderer
-                key={field.id}
-                field={field}
-                value={getAnswer(field.id)}
-                onChange={(v) => setAnswer(field.id, v)}
-                error={errors[field.id]}
-              />
-            ))}
-
-            {step.fields.length === 0 && (
-              <p className="text-slate-400 text-center py-8">
-                This step has no fields.
-              </p>
-            )}
-          </div>
-
-          {/* Navigation */}
-          <div className="px-6 sm:px-8 pb-6 sm:pb-8 flex items-center justify-between gap-3">
-            {currentStep > 0 ? (
-              <Button variant="outline" onClick={handleBack}>
-                ← Back
-              </Button>
-            ) : (
-              <div />
-            )}
-            {currentStep < totalSteps - 1 ? (
-              <Button onClick={handleNext} className="min-w-25">
-                Next →
-              </Button>
-            ) : (
-              <Button
-                onClick={handleSubmit}
-                disabled={submitting}
-                className="min-w-25"
-              >
-                {submitting
-                  ? "Submitting…"
-                  : previewMode
-                    ? "Submit (Preview)"
-                    : "Submit"}
-              </Button>
-            )}
-          </div>
-        </div>
-
-        {/* Error */}
-        {submitError && (
-          <div className="mt-4 text-sm text-red-600 bg-red-50 border border-red-200 rounded-md px-4 py-3">
-            {submitError}
-          </div>
-        )}
       </div>
+
+      <PublicFormCopyright visible={!previewMode} />
+    </div>
+  );
+}
+
+interface PublicFormCopyrightProps {
+  visible: boolean;
+}
+
+function PublicFormCopyright({ visible }: PublicFormCopyrightProps) {
+  if (!visible) return null;
+
+  return (
+    <div className="pb-4 text-center">
+      <p className="text-xs text-slate-400 dark:text-slate-500 inline-flex items-center gap-1.5">
+        <Copyright className="h-3 w-3" />
+        Bioceutica Milano 2026
+      </p>
     </div>
   );
 }
@@ -364,7 +449,12 @@ interface FieldRendererProps {
 }
 
 function FieldRenderer({ field, value, onChange, error }: FieldRendererProps) {
-  const inputClass = cn(error && "border-red-400 focus:ring-red-400");
+  const fieldStyle = getFieldStyle(field);
+  const styleCss = toCssStyle(fieldStyle);
+  const inputClass = cn(
+    error && "border-red-400 focus:ring-red-400",
+    fieldStyle?.border_color && "border",
+  );
 
   if (field.field_type === "image") {
     if (!field.image_url) return null;
@@ -380,8 +470,27 @@ function FieldRenderer({ field, value, onChange, error }: FieldRendererProps) {
     );
   }
 
+  if (field.field_type === "paragraph") {
+    if (!field.label) return null;
+    const paragraphStyle = toCssStyle(getFieldStyle(field));
+    return (
+      <div
+        className="text-sm leading-relaxed whitespace-pre-wrap text-slate-700"
+        style={paragraphStyle}
+      >
+        {field.label}
+      </div>
+    );
+  }
+
   const label = (
-    <Label htmlFor={field.id} className="text-slate-900">
+    <Label
+      htmlFor={field.id}
+      className="text-slate-900"
+      style={
+        fieldStyle?.text_color ? { color: fieldStyle.text_color } : undefined
+      }
+    >
       {field.label}
       {field.is_required && <span className="text-red-500 ml-1">*</span>}
     </Label>
@@ -415,6 +524,7 @@ function FieldRenderer({ field, value, onChange, error }: FieldRendererProps) {
             onChange={(e) => onChange(e.target.value)}
             placeholder={field.placeholder ?? ""}
             className={inputClass}
+            style={styleCss}
           />
           {helperText}
           {errorText}
@@ -432,6 +542,7 @@ function FieldRenderer({ field, value, onChange, error }: FieldRendererProps) {
             onChange={(e) => onChange(e.target.value)}
             placeholder={field.placeholder ?? ""}
             className={inputClass}
+            style={styleCss}
           />
           {helperText}
           {errorText}
@@ -449,6 +560,7 @@ function FieldRenderer({ field, value, onChange, error }: FieldRendererProps) {
             placeholder={field.placeholder ?? ""}
             className={cn("resize-none", inputClass)}
             rows={4}
+            style={styleCss}
           />
           {helperText}
           {errorText}
@@ -465,6 +577,7 @@ function FieldRenderer({ field, value, onChange, error }: FieldRendererProps) {
             value={String(value ?? "")}
             onChange={(e) => onChange(e.target.value)}
             className={inputClass}
+            style={styleCss}
           />
           {helperText}
           {errorText}
@@ -479,7 +592,11 @@ function FieldRenderer({ field, value, onChange, error }: FieldRendererProps) {
             value={String(value ?? "")}
             onValueChange={(v) => onChange(v)}
           >
-            <SelectTrigger id={field.id} className={inputClass}>
+            <SelectTrigger
+              id={field.id}
+              className={inputClass}
+              style={styleCss}
+            >
               <SelectValue placeholder="Select an option…" />
             </SelectTrigger>
             <SelectContent>
@@ -503,7 +620,11 @@ function FieldRenderer({ field, value, onChange, error }: FieldRendererProps) {
             {(field.options ?? []).map((opt) => (
               <label
                 key={opt}
-                className="flex items-center gap-2 cursor-pointer"
+                className={cn(
+                  "flex items-center gap-2 cursor-pointer",
+                  styleCss && "rounded-md px-2 py-1 border",
+                )}
+                style={styleCss}
               >
                 <input
                   type="radio"
@@ -513,7 +634,16 @@ function FieldRenderer({ field, value, onChange, error }: FieldRendererProps) {
                   onChange={() => onChange(opt)}
                   className="h-4 w-4"
                 />
-                <span className="text-sm text-slate-900">{opt}</span>
+                <span
+                  className="text-sm text-slate-900"
+                  style={
+                    fieldStyle?.text_color
+                      ? { color: fieldStyle.text_color }
+                      : undefined
+                  }
+                >
+                  {opt}
+                </span>
               </label>
             ))}
           </div>
@@ -531,7 +661,11 @@ function FieldRenderer({ field, value, onChange, error }: FieldRendererProps) {
             {(field.options ?? []).map((opt) => (
               <label
                 key={opt}
-                className="flex items-center gap-2 cursor-pointer"
+                className={cn(
+                  "flex items-center gap-2 cursor-pointer",
+                  styleCss && "rounded-md px-2 py-1 border",
+                )}
+                style={styleCss}
               >
                 <input
                   type="checkbox"
@@ -546,7 +680,16 @@ function FieldRenderer({ field, value, onChange, error }: FieldRendererProps) {
                   }}
                   className="h-4 w-4 rounded"
                 />
-                <span className="text-sm text-slate-900">{opt}</span>
+                <span
+                  className="text-sm text-slate-900"
+                  style={
+                    fieldStyle?.text_color
+                      ? { color: fieldStyle.text_color }
+                      : undefined
+                  }
+                >
+                  {opt}
+                </span>
               </label>
             ))}
           </div>

@@ -38,7 +38,7 @@ export default async function ResponsesPage({ params }: Props) {
 
   if (!form) notFound();
 
-  const responseFields: FormField[] = fields ?? [];
+  const responseFields: FormField[] = (fields ?? []).slice(0, 3);
   const rows: FormSubmission[] = submissions ?? [];
 
   function formatValue(val: unknown): string {
@@ -95,7 +95,7 @@ export default async function ResponsesPage({ params }: Props) {
                     {f.label || `Field (${f.field_type})`}
                   </TableHead>
                 ))}
-                <TableHead className="w-24">Webhook</TableHead>
+                <TableHead className="w-44">Action</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -116,12 +116,13 @@ export default async function ResponsesPage({ params }: Props) {
                     </TableCell>
                   ))}
                   <TableCell>
-                    <Badge
-                      variant={row.webhook_sent ? "success" : "destructive"}
-                      className="text-xs"
-                    >
-                      {row.webhook_sent ? "✓ Sent" : "✗ Failed"}
-                    </Badge>
+                    <Button asChild variant="outline" size="sm">
+                      <Link
+                        href={`/dashboard/forms/${formId}/responses/${row.id}`}
+                      >
+                        View full Response
+                      </Link>
+                    </Button>
                   </TableCell>
                 </TableRow>
               ))}

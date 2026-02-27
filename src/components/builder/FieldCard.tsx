@@ -1,7 +1,7 @@
 "use client";
 
-import { useState, useRef } from "react";
-import type { FormField, FieldType } from "@/lib/types";
+import { useState, useRef, useEffect } from "react";
+import type { FormField, FieldType, ElementColorStyle } from "@/lib/types";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -9,6 +9,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { ImageLibraryModal } from "./ImageLibraryModal";
+import { ElementStyleEditor } from "./ElementStyleEditor";
 import {
   ChevronUp,
   ChevronDown,
@@ -24,6 +25,34 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
+function getFieldAppearanceStyle(
+  field: FormField,
+): ElementColorStyle | undefined {
+  const appearance = field.validation?.appearance;
+  if (!appearance) return undefined;
+  return {
+    text_color: appearance.text_color,
+    background_color: appearance.background_color,
+    border_color: appearance.border_color,
+  };
+}
+
+function setFieldAppearanceStyle(
+  field: FormField,
+  style: ElementColorStyle | undefined,
+): FormField["validation"] {
+  const validation = { ...(field.validation ?? {}) };
+  if (
+    style &&
+    (style.text_color || style.background_color || style.border_color)
+  ) {
+    validation.appearance = style;
+  } else {
+    delete validation.appearance;
+  }
+  return Object.keys(validation).length > 0 ? validation : null;
+}
+
 const FIELD_LABEL: Record<FieldType, string> = {
   text: "Text",
   textarea: "Textarea",
@@ -35,6 +64,7 @@ const FIELD_LABEL: Record<FieldType, string> = {
   radio: "Radio Group",
   datetime: "Date / Time",
   image: "Image Block",
+  paragraph: "Paragraph",
 };
 
 const FIELD_COLOR: Record<FieldType, string> = {
@@ -57,6 +87,8 @@ const FIELD_COLOR: Record<FieldType, string> = {
     "bg-pink-50 border-pink-200 dark:bg-pink-950/30 dark:border-pink-800",
   image:
     "bg-slate-50 border-slate-200 dark:bg-slate-800/50 dark:border-slate-700",
+  paragraph:
+    "bg-teal-50 border-teal-200 dark:bg-teal-950/30 dark:border-teal-800",
 };
 
 interface FieldCardProps {
@@ -94,6 +126,10 @@ export function FieldCard({
   const [libraryOpen, setLibraryOpen] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
+  useEffect(() => {
+    setLocalField(field);
+  }, [field]);
+
   function saveEdits() {
     onUpdate(field.id, {
       label: localField.label,
@@ -103,6 +139,7 @@ export function FieldCard({
       options: localField.options,
       image_url: localField.image_url,
       image_alt: localField.image_alt,
+      validation: localField.validation,
     });
     setEditing(false);
   }
@@ -136,6 +173,7 @@ export function FieldCard({
   const hasOptions = ["dropdown", "radio", "checkbox"].includes(
     field.field_type,
   );
+  const isParagraph = field.field_type === "paragraph";
 
   return (
     <div
@@ -157,6 +195,18 @@ export function FieldCard({
           {field.field_type === "image" ? (
             <span className="text-sm font-medium text-slate-600 dark:text-slate-400">
               Image Block
+            </span>
+          ) : isParagraph ? (
+            <span className="text-sm font-medium text-slate-600 dark:text-slate-400 truncate block">
+              {field.label ? (
+                field.label.length > 60 ? (
+                  field.label.slice(0, 60) + "…"
+                ) : (
+                  field.label
+                )
+              ) : (
+                <span className="italic">Empty paragraph</span>
+              )}
             </span>
           ) : (
             <span className="text-sm font-medium text-slate-900 dark:text-slate-100 truncate block">
@@ -336,6 +386,31 @@ export function FieldCard({
                 }
               />
             </>
+          ) : isParagraph ? (
+            <>
+              <div className="space-y-1">
+                <Label>Content</Label>
+                <Textarea
+                  value={localField.label ?? ""}
+                  onChange={(e) =>
+                    setLocalField((f) => ({ ...f, label: e.target.value }))
+                  }
+                  placeholder="Type your paragraph text here…"
+                  rows={5}
+                  className="resize-none"
+                />
+              </div>
+              <ElementStyleEditor
+                title="Text colors"
+                value={getFieldAppearanceStyle(localField)}
+                onChange={(style) =>
+                  setLocalField((f) => ({
+                    ...f,
+                    validation: setFieldAppearanceStyle(f, style),
+                  }))
+                }
+              />
+            </>
           ) : (
             <>
               <div className="space-y-1">
@@ -389,6 +464,17 @@ export function FieldCard({
                 />
                 <Label htmlFor={`required-${field.id}`}>Required</Label>
               </div>
+
+              <ElementStyleEditor
+                title="Element colors"
+                value={getFieldAppearanceStyle(localField)}
+                onChange={(style) =>
+                  setLocalField((f) => ({
+                    ...f,
+                    validation: setFieldAppearanceStyle(f, style),
+                  }))
+                }
+              />
 
               {hasOptions && (
                 <>
@@ -462,6 +548,13 @@ export function FieldCard({
             alt={field.image_alt ?? ""}
             className="max-h-32 rounded-md object-contain border"
           />
+        </div>
+      )}
+
+      {/* Paragraph preview (non-editing mode) */}
+      {!editing && isParagraph && field.label && (
+        <div className="mt-2 text-sm text-slate-600 dark:text-slate-400 whitespace-pre-wrap leading-relaxed">
+          {field.label}
         </div>
       )}
     </div>

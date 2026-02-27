@@ -15,6 +15,7 @@ import {
   UserSearch,
   Video,
   Clapperboard,
+  MessageSquare,
 } from "lucide-react";
 
 interface SidebarProps {
@@ -53,6 +54,7 @@ export function Sidebar({ userRole, userName, userEmail }: SidebarProps) {
 
   const navItems = [
     { label: "Forms", href: "/dashboard", icon: FileText },
+    { label: "Responses", href: "/dashboard/responses", icon: MessageSquare },
     { label: "Prospects", href: "/dashboard/prospects", icon: UserSearch },
     { label: "Creators", href: "/dashboard/creators", icon: Video },
     { label: "Content", href: "/dashboard/content", icon: Clapperboard },

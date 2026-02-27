@@ -109,3 +109,8 @@ create index if not exists forms_user_id_idx on public.forms (user_id);
 -- Structure: { enabled, logo_url, logo_alt, text, terms_enabled, terms[] }
 alter table public.forms
   add column if not exists welcome_page jsonb;
+
+-- ============================================================
+-- 7. Add paragraph field type to the field_type enum
+-- ============================================================
+ALTER TYPE field_type ADD VALUE IF NOT EXISTS 'paragraph';

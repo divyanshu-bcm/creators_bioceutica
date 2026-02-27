@@ -13,6 +13,7 @@ import {
   Circle,
   Calendar,
   Image,
+  FileText,
 } from "lucide-react";
 
 const FIELDS: { type: FieldType; label: string; icon: React.ReactNode }[] = [
@@ -42,6 +43,11 @@ const FIELDS: { type: FieldType; label: string; icon: React.ReactNode }[] = [
     icon: <Calendar className="h-4 w-4" />,
   },
   { type: "image", label: "Image", icon: <Image className="h-4 w-4" /> },
+  {
+    type: "paragraph",
+    label: "Paragraph",
+    icon: <FileText className="h-4 w-4" />,
+  },
 ];
 
 interface FieldToolbarProps {

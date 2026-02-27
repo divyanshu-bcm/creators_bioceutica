@@ -9,6 +9,26 @@ export interface WelcomeTerm {
   required: boolean;
 }
 
+export interface ElementColorStyle {
+  text_color?: string;
+  background_color?: string;
+  border_color?: string;
+}
+
+export interface StepElementStyles {
+  prev_button?: ElementColorStyle;
+  next_button?: ElementColorStyle;
+  submit_button?: ElementColorStyle;
+}
+
+export interface FormUiStyles {
+  start_button?: ElementColorStyle;
+  navigation_buttons?: StepElementStyles;
+  welcome_text?: ElementColorStyle;
+  tnc_element?: ElementColorStyle;
+  step_elements?: Record<string, StepElementStyles>;
+}
+
 export interface WelcomePage {
   enabled: boolean;
   logo_url: string | null;
@@ -17,6 +37,7 @@ export interface WelcomePage {
   button_label: string;
   terms_enabled: boolean;
   terms: WelcomeTerm[];
+  ui_styles?: FormUiStyles;
 }
 
 export const defaultWelcomePage = (): WelcomePage => ({
@@ -27,6 +48,7 @@ export const defaultWelcomePage = (): WelcomePage => ({
   button_label: "Start",
   terms_enabled: false,
   terms: [],
+  ui_styles: {},
 });
 // ──────────────────────────────────────────────
 
@@ -40,7 +62,8 @@ export type FieldType =
   | "checkbox"
   | "radio"
   | "datetime"
-  | "image";
+  | "image"
+  | "paragraph";
 
 export interface Form {
   id: string;
@@ -78,7 +101,9 @@ export interface FormField {
   options: string[] | null; // dropdown / radio / checkbox choices
   image_url: string | null;
   image_alt: string | null;
-  validation: Record<string, unknown> | null;
+  validation:
+    | (Record<string, unknown> & { appearance?: ElementColorStyle })
+    | null;
   is_draft: boolean;
   draft_parent_id: string | null;
   pending_delete: boolean;
