@@ -25,6 +25,14 @@ export function FormRenderer({ form, previewMode = false }: FormRendererProps) {
   const slug = form.slug!;
   const { load, save, clear } = useStepProgress(slug);
   const totalSteps = form.steps.length;
+  const wp = form.welcome_page?.enabled ? form.welcome_page : null;
+
+  // Welcome phase — shown before form steps when welcome page is enabled
+  const [phase, setPhase] = useState<"welcome" | "form">(
+    wp ? "welcome" : "form",
+  );
+  const [tcAnswers, setTcAnswers] = useState<Record<string, boolean>>({});
+  const [tcError, setTcError] = useState(false);
 
   const [currentStep, setCurrentStep] = useState(0);
   const [answers, setAnswers] = useState<Record<string, unknown>>({});
@@ -39,9 +47,28 @@ export function FormRenderer({ form, previewMode = false }: FormRendererProps) {
     if (saved) {
       setCurrentStep(saved.currentStep);
       setAnswers(saved.answers);
+      // If session was saved mid-form, skip welcome page
+      if (wp) setPhase("form");
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  // ─── Welcome page continue handler ────────────────────────────────────────
+  function handleWelcomeContinue() {
+    if (!wp) return setPhase("form");
+    if (wp.terms_enabled) {
+      const allRequired = wp.terms
+        .filter((t) => t.required)
+        .every((t) => tcAnswers[t.id]);
+      if (!allRequired) {
+        setTcError(true);
+        return;
+      }
+    }
+    setTcError(false);
+    setPhase("form");
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  }
 
   const step = form.steps[currentStep];
 
@@ -120,6 +147,90 @@ export function FormRenderer({ form, previewMode = false }: FormRendererProps) {
       const j = await res.json().catch(() => ({}));
       setSubmitError(j.error ?? "Something went wrong. Please try again.");
     }
+  }
+
+  // ─── Welcome page ─────────────────────────────────────────────────────────
+  if (phase === "welcome" && wp) {
+    return (
+      <div className="min-h-screen bg-slate-100">
+        <div className="max-w-xl mx-auto px-4 py-12">
+          <div className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
+            <div className="p-8 sm:p-10 space-y-8">
+              {/* Logo */}
+              {wp.logo_url && (
+                <div className="flex justify-center">
+                  <img
+                    src={wp.logo_url}
+                    alt={wp.logo_alt ?? ""}
+                    className="max-h-24 max-w-full object-contain"
+                  />
+                </div>
+              )}
+
+              {/* Form title */}
+              <div className="text-center">
+                <h1 className="text-3xl font-bold text-slate-900">
+                  {form.title}
+                </h1>
+              </div>
+
+              {/* Welcome text */}
+              {wp.text && (
+                <p className="text-slate-600 whitespace-pre-wrap text-center leading-relaxed">
+                  {wp.text}
+                </p>
+              )}
+
+              {/* T&C checkboxes */}
+              {wp.terms_enabled && wp.terms.length > 0 && (
+                <div className="space-y-3 pt-2 border-t border-slate-100">
+                  {wp.terms.map((term) => (
+                    <label
+                      key={term.id}
+                      className="flex items-start gap-3 cursor-pointer"
+                    >
+                      <input
+                        type="checkbox"
+                        checked={!!tcAnswers[term.id]}
+                        onChange={(e) =>
+                          setTcAnswers((prev) => ({
+                            ...prev,
+                            [term.id]: e.target.checked,
+                          }))
+                        }
+                        className="h-4 w-4 rounded mt-0.5 shrink-0"
+                      />
+                      <span className="text-sm text-slate-700">
+                        {term.label}
+                        {term.required && (
+                          <span className="text-red-500 ml-1">*</span>
+                        )}
+                      </span>
+                    </label>
+                  ))}
+                  {tcError && (
+                    <p className="text-sm text-red-600">
+                      Please accept all required terms to continue.
+                    </p>
+                  )}
+                </div>
+              )}
+
+              {/* Start button */}
+              <Button
+                className="w-full h-14 text-base font-semibold tracking-wide"
+                onClick={handleWelcomeContinue}
+              >
+                <span className="flex items-center justify-center gap-2 w-full">
+                  {wp.button_label?.trim() || "Start"}
+                  <span aria-hidden>→</span>
+                </span>
+              </Button>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
   }
 
   // ─── Thank you screen ─────────────────────────────────────────────────────

@@ -54,6 +54,20 @@ export async function createSessionClient() {
   );
 }
 
+/**
+ * Fast auth guard for API routes — reads session from cookie (no network call).
+ * Throws a 401 error if no valid session exists.
+ * The proxy already verified the session on every request, so this is safe.
+ */
+export async function requireAuth(): Promise<{ userId: string }> {
+  const client = await createSessionClient();
+  const {
+    data: { session },
+  } = await client.auth.getSession();
+  if (!session) throw Object.assign(new Error("Unauthorized"), { status: 401 });
+  return { userId: session.user.id };
+}
+
 /** Anon client without a user session — for public form rendering. */
 export async function createAnonClient() {
   const cookieStore = await cookies();

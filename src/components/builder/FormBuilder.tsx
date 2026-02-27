@@ -2,13 +2,21 @@
 
 import { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
-import type { FormFull, FieldType, FormField } from "@/lib/types";
+import type {
+  FormFull,
+  FieldType,
+  FormField,
+  WelcomePage,
+  WelcomeTerm,
+} from "@/lib/types";
+import { defaultWelcomePage } from "@/lib/types";
 import { useFormBuilder } from "@/hooks/useFormBuilder";
 import { FieldToolbar } from "./FieldToolbar";
 import { FieldCard } from "./FieldCard";
 import { FormRenderer } from "@/components/renderer/FormRenderer";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import {
   Dialog,
@@ -31,6 +39,9 @@ import {
   Eye,
   X,
   RefreshCw,
+  ImageIcon,
+  AlignLeft,
+  ShieldCheck,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -72,6 +83,12 @@ export function FormBuilder({ form }: FormBuilderProps) {
 
   // Preview
   const [previewOpen, setPreviewOpen] = useState(false);
+
+  // Welcome page
+  const [welcomePage, setWelcomePage] = useState<WelcomePage>(
+    form.welcome_page ?? defaultWelcomePage(),
+  );
+  const [activeView, setActiveView] = useState<"step" | "welcome">("step");
 
   const activeStep = builder.steps.find((s) => s.id === builder.activeStepId);
 
@@ -121,6 +138,32 @@ export function FormBuilder({ form }: FormBuilderProps) {
   async function handleDeleteForm() {
     await fetch(`/api/forms/${form.id}`, { method: "DELETE" });
     router.push("/dashboard");
+  }
+
+  // ─── Welcome page ─────────────────────────────────────────────────────────
+  async function saveWelcomePage(wp: WelcomePage) {
+    await fetch(`/api/forms/${form.id}`, {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ welcome_page: wp }),
+    });
+    if (isPublished) setHasUnpublishedChanges(true);
+  }
+
+  function handleToggleWelcomePage() {
+    const updated = { ...welcomePage, enabled: !welcomePage.enabled };
+    setWelcomePage(updated);
+    saveWelcomePage(updated);
+    if (!welcomePage.enabled) {
+      setActiveView("welcome");
+    } else {
+      setActiveView("step");
+    }
+  }
+
+  function handleWelcomePageChange(updated: WelcomePage) {
+    setWelcomePage(updated);
+    saveWelcomePage(updated);
   }
 
   // ─── Field operations forwarded to hook ──────────────────────────────────
@@ -368,6 +411,20 @@ export function FormBuilder({ form }: FormBuilderProps) {
         <div className="flex-1 min-w-0">
           {/* Step tabs */}
           <div className="flex items-center gap-2 mb-4 overflow-x-auto pb-1">
+            {/* Welcome tab */}
+            {welcomePage.enabled && (
+              <button
+                onClick={() => setActiveView("welcome")}
+                className={cn(
+                  "px-3 py-1.5 rounded-md text-sm font-medium transition-colors border shrink-0",
+                  activeView === "welcome"
+                    ? "bg-violet-600 text-white border-violet-600"
+                    : "bg-white text-violet-600 border-violet-300 hover:bg-violet-50 dark:bg-slate-800 dark:text-violet-400 dark:border-violet-700 dark:hover:bg-slate-700",
+                )}
+              >
+                ✦ Welcome
+              </button>
+            )}
             {builder.steps.map((step) => (
               <div key={step.id} className="flex items-center shrink-0">
                 {editingStepId === step.id ? (
@@ -406,14 +463,17 @@ export function FormBuilder({ form }: FormBuilderProps) {
                   </span>
                 ) : (
                   <button
-                    onClick={() => builder.setActiveStep(step.id)}
+                    onClick={() => {
+                      builder.setActiveStep(step.id);
+                      setActiveView("step");
+                    }}
                     onDoubleClick={() => {
                       setEditingStepId(step.id);
                       setStepTitleInput(step.title);
                     }}
                     className={cn(
                       "px-3 py-1.5 rounded-md text-sm font-medium transition-colors border",
-                      step.id === builder.activeStepId
+                      step.id === builder.activeStepId && activeView === "step"
                         ? "bg-slate-900 text-white border-slate-900 dark:bg-slate-100 dark:text-slate-900 dark:border-slate-100"
                         : "bg-white text-slate-600 border-slate-300 hover:bg-slate-50 dark:bg-slate-800 dark:text-slate-300 dark:border-slate-600 dark:hover:bg-slate-700",
                     )}
@@ -450,56 +510,93 @@ export function FormBuilder({ form }: FormBuilderProps) {
             </p>
           )}
 
-          {/* Field canvas */}
-          <div className="space-y-3">
-            {activeStep?.fields.length === 0 && (
-              <div className="rounded-xl border-2 border-dashed border-slate-200 dark:border-slate-700 p-12 text-center text-slate-400 dark:text-slate-500">
-                <p className="font-medium">No fields yet</p>
-                <p className="text-sm mt-1">
-                  Click a field type on the right to add it
-                </p>
-              </div>
-            )}
-            {activeStep?.fields.map((field, idx) => (
-              <div
-                key={field.id}
-                draggable
-                onDragStart={(e) => handleDragStart(e, field.id)}
-                onDragOver={(e) => handleDragOver(e, field.id)}
-                onDrop={(e) => handleDrop(e, field.id)}
-                onDragEnd={handleDragEnd}
-                className={cn(
-                  "transition-opacity",
-                  dragId === field.id && "opacity-40",
-                  dragOverId === field.id &&
-                    dragId !== field.id &&
-                    "ring-2 ring-slate-400 ring-offset-2 rounded-lg",
-                )}
-              >
-                <FieldCard
-                  field={field}
-                  formId={form.id}
-                  isFirst={idx === 0}
-                  isLast={idx === activeStep.fields.length - 1}
-                  onUpdate={handleUpdateField}
-                  onDelete={handleDeleteField}
-                  onRestore={handleRestoreField}
-                  onMove={handleMoveField}
-                  onDragHandlePointerDown={() => {
-                    canDragRef.current = field.id;
-                  }}
-                  onDragHandlePointerUp={() => {
-                    canDragRef.current = null;
-                  }}
-                />
-              </div>
-            ))}
-          </div>
+          {/* Field canvas or Welcome Page editor */}
+          {activeView === "welcome" ? (
+            <WelcomePageEditor
+              welcomePage={welcomePage}
+              onChange={handleWelcomePageChange}
+            />
+          ) : (
+            <div className="space-y-3">
+              {activeStep?.fields.length === 0 && (
+                <div className="rounded-xl border-2 border-dashed border-slate-200 dark:border-slate-700 p-12 text-center text-slate-400 dark:text-slate-500">
+                  <p className="font-medium">No fields yet</p>
+                  <p className="text-sm mt-1">
+                    Click a field type on the right to add it
+                  </p>
+                </div>
+              )}
+              {activeStep?.fields.map((field, idx) => (
+                <div
+                  key={field.id}
+                  draggable
+                  onDragStart={(e) => handleDragStart(e, field.id)}
+                  onDragOver={(e) => handleDragOver(e, field.id)}
+                  onDrop={(e) => handleDrop(e, field.id)}
+                  onDragEnd={handleDragEnd}
+                  className={cn(
+                    "transition-opacity",
+                    dragId === field.id && "opacity-40",
+                    dragOverId === field.id &&
+                      dragId !== field.id &&
+                      "ring-2 ring-slate-400 ring-offset-2 rounded-lg",
+                  )}
+                >
+                  <FieldCard
+                    field={field}
+                    formId={form.id}
+                    isFirst={idx === 0}
+                    isLast={idx === activeStep.fields.length - 1}
+                    onUpdate={handleUpdateField}
+                    onDelete={handleDeleteField}
+                    onRestore={handleRestoreField}
+                    onMove={handleMoveField}
+                    onDragHandlePointerDown={() => {
+                      canDragRef.current = field.id;
+                    }}
+                    onDragHandlePointerUp={() => {
+                      canDragRef.current = null;
+                    }}
+                  />
+                </div>
+              ))}
+            </div>
+          )}
         </div>
 
         {/* Right: Toolbar */}
         <div className="w-52 shrink-0">
-          <FieldToolbar onAdd={handleAddField} />
+          {activeView === "step" && <FieldToolbar onAdd={handleAddField} />}
+
+          {/* Welcome Page toggle */}
+          <div
+            className={cn(
+              "bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl p-4",
+              activeView === "step" ? "mt-4" : "",
+            )}
+          >
+            <p className="text-xs font-semibold text-slate-400 dark:text-slate-500 uppercase tracking-wide mb-2">
+              Welcome Page
+            </p>
+            <Button
+              variant={welcomePage.enabled ? "destructive" : "outline"}
+              size="sm"
+              className="w-full"
+              onClick={handleToggleWelcomePage}
+            >
+              {welcomePage.enabled ? "Remove Welcome Page" : "Add Welcome Page"}
+            </Button>
+            {welcomePage.enabled && activeView !== "welcome" && (
+              <Button
+                variant="ghost"
+                size="sm"
+                className="w-full mt-1 text-violet-600 hover:text-violet-700"
+                onClick={() => setActiveView("welcome")}
+              >
+                Edit Welcome Page
+              </Button>
+            )}
+          </div>
 
           <div className="mt-4 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl p-4">
             <p className="text-xs font-semibold text-slate-400 dark:text-slate-500 uppercase tracking-wide mb-2">
@@ -548,6 +645,7 @@ export function FormBuilder({ form }: FormBuilderProps) {
                 steps: builder.steps,
                 slug: form.slug ?? "preview",
                 is_published: false,
+                welcome_page: welcomePage,
               }}
               previewMode
             />
@@ -578,6 +676,263 @@ export function FormBuilder({ form }: FormBuilderProps) {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+    </div>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Welcome Page Editor
+// ─────────────────────────────────────────────────────────────────────────────
+
+interface WelcomePageEditorProps {
+  welcomePage: WelcomePage;
+  onChange: (updated: WelcomePage) => void;
+}
+
+function WelcomePageEditor({
+  welcomePage: wp,
+  onChange,
+}: WelcomePageEditorProps) {
+  const [uploading, setUploading] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  async function handleLogoUpload(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setUploading(true);
+    const formData = new FormData();
+    formData.append("file", file);
+    const res = await fetch("/api/upload", { method: "POST", body: formData });
+    setUploading(false);
+    if (!res.ok) return;
+    const { url } = await res.json();
+    onChange({ ...wp, logo_url: url, logo_alt: file.name });
+    // Reset so the same file can be re-uploaded if needed
+    if (fileInputRef.current) fileInputRef.current.value = "";
+  }
+
+  function removeLogo() {
+    onChange({ ...wp, logo_url: null, logo_alt: null });
+  }
+
+  function addTerm() {
+    const newTerm: WelcomeTerm = {
+      id: crypto.randomUUID(),
+      label: "",
+      required: true,
+    };
+    onChange({ ...wp, terms: [...wp.terms, newTerm] });
+  }
+
+  function updateTerm(id: string, patch: Partial<WelcomeTerm>) {
+    onChange({
+      ...wp,
+      terms: wp.terms.map((t) => (t.id === id ? { ...t, ...patch } : t)),
+    });
+  }
+
+  function removeTerm(id: string) {
+    onChange({ ...wp, terms: wp.terms.filter((t) => t.id !== id) });
+  }
+
+  return (
+    <div className="space-y-6">
+      {/* ── Logo section ── */}
+      <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl p-5">
+        <div className="flex items-center gap-2 mb-3">
+          <ImageIcon className="h-4 w-4 text-slate-400" />
+          <h3 className="text-sm font-semibold text-slate-700 dark:text-slate-200">
+            Logo
+          </h3>
+        </div>
+        {wp.logo_url ? (
+          <div className="flex flex-col items-center gap-3">
+            <img
+              src={wp.logo_url}
+              alt={wp.logo_alt ?? "Logo"}
+              className="max-h-32 max-w-full object-contain rounded-lg border border-slate-200 dark:border-slate-700 p-2 bg-slate-50 dark:bg-slate-800"
+            />
+            <div className="flex gap-2">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => fileInputRef.current?.click()}
+                disabled={uploading}
+              >
+                {uploading ? (
+                  <Loader2 className="h-3.5 w-3.5 mr-1 animate-spin" />
+                ) : (
+                  <ImageIcon className="h-3.5 w-3.5 mr-1" />
+                )}
+                Replace
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={removeLogo}
+                className="text-red-500 hover:text-red-700"
+              >
+                <Trash2 className="h-3.5 w-3.5 mr-1" />
+                Remove
+              </Button>
+            </div>
+          </div>
+        ) : (
+          <button
+            onClick={() => fileInputRef.current?.click()}
+            disabled={uploading}
+            className="w-full border-2 border-dashed border-slate-200 dark:border-slate-700 rounded-lg py-8 flex flex-col items-center gap-2 text-slate-400 hover:border-slate-300 hover:text-slate-500 transition-colors"
+          >
+            {uploading ? (
+              <Loader2 className="h-6 w-6 animate-spin" />
+            ) : (
+              <ImageIcon className="h-6 w-6" />
+            )}
+            <span className="text-sm">
+              {uploading ? "Uploading…" : "Upload logo"}
+            </span>
+          </button>
+        )}
+        <input
+          ref={fileInputRef}
+          type="file"
+          accept="image/*"
+          className="hidden"
+          onChange={handleLogoUpload}
+        />
+      </div>
+
+      {/* ── Welcome text section ── */}
+      <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl p-5">
+        <div className="flex items-center gap-2 mb-3">
+          <AlignLeft className="h-4 w-4 text-slate-400" />
+          <h3 className="text-sm font-semibold text-slate-700 dark:text-slate-200">
+            Welcome Text
+          </h3>
+        </div>
+        <Textarea
+          value={wp.text}
+          onChange={(e) => onChange({ ...wp, text: e.target.value })}
+          placeholder="Write a welcome message for your respondents…"
+          className="resize-none text-sm"
+          rows={5}
+        />
+        <p className="text-xs text-slate-400 mt-1.5">
+          This text is displayed to respondents before they start the form.
+        </p>
+      </div>
+
+      {/* ── T&C section ── */}
+      <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl p-5">
+        <div className="flex items-center justify-between mb-3">
+          <div className="flex items-center gap-2">
+            <ShieldCheck className="h-4 w-4 text-slate-400" />
+            <h3 className="text-sm font-semibold text-slate-700 dark:text-slate-200">
+              Terms &amp; Conditions
+            </h3>
+          </div>
+          <button
+            onClick={() =>
+              onChange({ ...wp, terms_enabled: !wp.terms_enabled })
+            }
+            className={cn(
+              "relative inline-flex h-5 w-9 items-center rounded-full transition-colors focus:outline-none",
+              wp.terms_enabled
+                ? "bg-violet-600"
+                : "bg-slate-300 dark:bg-slate-600",
+            )}
+            aria-label="Toggle T&C section"
+          >
+            <span
+              className={cn(
+                "inline-block h-3.5 w-3.5 rounded-full bg-white shadow transition-transform",
+                wp.terms_enabled ? "translate-x-5" : "translate-x-0.5",
+              )}
+            />
+          </button>
+        </div>
+
+        {wp.terms_enabled ? (
+          <div className="space-y-3">
+            {wp.terms.length === 0 && (
+              <p className="text-sm text-slate-400 text-center py-4 border-2 border-dashed border-slate-200 dark:border-slate-700 rounded-lg">
+                No terms yet — click &ldquo;Add T&amp;C&rdquo; below
+              </p>
+            )}
+            {wp.terms.map((term, idx) => (
+              <div key={term.id} className="flex gap-2 items-start">
+                <span className="text-xs text-slate-400 mt-2 w-4 shrink-0">
+                  {idx + 1}.
+                </span>
+                <Textarea
+                  value={term.label}
+                  onChange={(e) =>
+                    updateTerm(term.id, { label: e.target.value })
+                  }
+                  placeholder="e.g. I agree to the Terms of Service"
+                  className="resize-none text-sm flex-1"
+                  rows={2}
+                />
+                <div className="flex flex-col gap-1 shrink-0">
+                  <button
+                    onClick={() => removeTerm(term.id)}
+                    className="text-slate-400 hover:text-red-500 transition-colors p-1"
+                    title="Remove"
+                  >
+                    <X className="h-4 w-4" />
+                  </button>
+                  <label
+                    className="flex items-center gap-1 cursor-pointer"
+                    title="Required"
+                  >
+                    <input
+                      type="checkbox"
+                      checked={term.required}
+                      onChange={(e) =>
+                        updateTerm(term.id, { required: e.target.checked })
+                      }
+                      className="h-3.5 w-3.5 rounded"
+                    />
+                    <span className="text-xs text-slate-400">Req.</span>
+                  </label>
+                </div>
+              </div>
+            ))}
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={addTerm}
+              className="w-full mt-1"
+            >
+              <Plus className="h-3.5 w-3.5 mr-1" /> Add T&amp;C
+            </Button>
+          </div>
+        ) : (
+          <p className="text-sm text-slate-400">
+            Enable to add T&amp;C checkboxes that respondents must agree to
+            before proceeding.
+          </p>
+        )}
+      </div>
+
+      {/* ── Start button label ── */}
+      <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl p-5">
+        <div className="flex items-center gap-2 mb-3">
+          <h3 className="text-sm font-semibold text-slate-700 dark:text-slate-200">
+            Start Button Label
+          </h3>
+        </div>
+        <Input
+          value={wp.button_label ?? "Start"}
+          onChange={(e) => onChange({ ...wp, button_label: e.target.value })}
+          placeholder="Start"
+          className="text-sm"
+        />
+        <p className="text-xs text-slate-400 mt-1.5">
+          The text shown on the continue button. Defaults to
+          &ldquo;Start&rdquo;.
+        </p>
+      </div>
     </div>
   );
 }

@@ -9,28 +9,28 @@ export default async function DashboardLayout({
 }: {
   children: React.ReactNode;
 }) {
-  const session = await createSessionClient();
+  const supabase = await createSessionClient();
   const {
-    data: { user },
-  } = await session.auth.getUser();
+    data: { session },
+  } = await supabase.auth.getSession();
 
-  if (!user) redirect("/login");
+  if (!session) redirect("/login");
 
   const admin = createServiceRoleClient();
   const { data: profile } = await admin
     .from("profiles")
     .select("full_name, role, email")
-    .eq("id", user.id)
+    .eq("id", session.user.id)
     .single();
 
   const userRole = (profile?.role ?? "user") as "admin" | "user";
   const userName = profile?.full_name ?? "";
-  const userEmail = profile?.email ?? user.email ?? "";
+  const userEmail = profile?.email ?? session.user.email ?? "";
 
   return (
-    <div className="flex min-h-screen bg-slate-50 dark:bg-slate-950">
+    <div className="flex h-screen overflow-hidden bg-slate-50 dark:bg-slate-950">
       <Sidebar userRole={userRole} userName={userName} userEmail={userEmail} />
-      <div className="flex-1 flex flex-col min-w-0">
+      <div className="flex-1 flex flex-col min-w-0 h-full">
         <header className="bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800 h-14 flex items-center justify-end px-6 shrink-0">
           <ThemeToggle />
         </header>

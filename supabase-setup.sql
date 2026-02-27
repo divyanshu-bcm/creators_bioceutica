@@ -101,3 +101,11 @@ alter table public.forms
 
 -- Index for fast per-user lookups
 create index if not exists forms_user_id_idx on public.forms (user_id);
+
+-- ============================================================
+-- 6. Forms — add welcome_page JSONB column
+-- ============================================================
+-- Stores the optional welcome page config: logo, text, and T&C items.
+-- Structure: { enabled, logo_url, logo_alt, text, terms_enabled, terms[] }
+alter table public.forms
+  add column if not exists welcome_page jsonb;

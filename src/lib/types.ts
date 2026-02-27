@@ -2,6 +2,34 @@
 // Shared TypeScript interfaces for the whole app
 // ──────────────────────────────────────────────
 
+// ─── Welcome Page ─────────────────────────────
+export interface WelcomeTerm {
+  id: string;
+  label: string;
+  required: boolean;
+}
+
+export interface WelcomePage {
+  enabled: boolean;
+  logo_url: string | null;
+  logo_alt: string | null;
+  text: string;
+  button_label: string;
+  terms_enabled: boolean;
+  terms: WelcomeTerm[];
+}
+
+export const defaultWelcomePage = (): WelcomePage => ({
+  enabled: false,
+  logo_url: null,
+  logo_alt: null,
+  text: "",
+  button_label: "Start",
+  terms_enabled: false,
+  terms: [],
+});
+// ──────────────────────────────────────────────
+
 export type FieldType =
   | "text"
   | "textarea"
@@ -21,6 +49,7 @@ export interface Form {
   slug: string | null;
   is_published: boolean;
   user_id: string | null;
+  welcome_page: WelcomePage | null;
   created_at: string;
   updated_at: string;
 }

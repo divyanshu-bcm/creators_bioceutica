@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import Link from "next/link";
+import Image from "next/image";
 import { usePathname, useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { cn } from "@/lib/utils";
@@ -11,6 +12,9 @@ import {
   LogOut,
   ChevronLeft,
   ChevronRight,
+  UserSearch,
+  Video,
+  Clapperboard,
 } from "lucide-react";
 
 interface SidebarProps {
@@ -49,6 +53,9 @@ export function Sidebar({ userRole, userName, userEmail }: SidebarProps) {
 
   const navItems = [
     { label: "Forms", href: "/dashboard", icon: FileText },
+    { label: "Prospects", href: "/dashboard/prospects", icon: UserSearch },
+    { label: "Creators", href: "/dashboard/creators", icon: Video },
+    { label: "Content", href: "/dashboard/content", icon: Clapperboard },
     ...(userRole === "admin"
       ? [{ label: "Users", href: "/dashboard/users", icon: Users }]
       : []),
@@ -60,31 +67,43 @@ export function Sidebar({ userRole, userName, userEmail }: SidebarProps) {
   return (
     <aside
       className={cn(
-        "h-screen sticky top-0 flex flex-col shrink-0 bg-white dark:bg-slate-900 border-r border-slate-200 dark:border-slate-800 transition-all duration-200 overflow-hidden",
+        "h-full flex flex-col shrink-0 bg-white dark:bg-slate-900 border-r border-slate-200 dark:border-slate-800 transition-all duration-200 overflow-visible relative",
         isCollapsed ? "w-14" : "w-56",
       )}
     >
-      {/* Header */}
-      <div className="h-14 flex items-center px-3 border-b border-slate-200 dark:border-slate-800 gap-2">
-        {!isCollapsed && (
-          <span className="font-bold text-slate-900 dark:text-slate-100 text-base truncate flex-1 pl-1">
-            Bioceutica Creators
-          </span>
+      {/* Toggle button floating on the right edge */}
+      <button
+        onClick={toggle}
+        className="absolute -right-3 top-5 z-50 flex h-6 w-6 items-center justify-center rounded-full border border-slate-200 bg-white text-slate-500 shadow-sm hover:text-slate-900 hover:shadow-md dark:border-slate-700 dark:bg-slate-900 dark:text-slate-400 dark:hover:text-slate-100 transition-all"
+        title={isCollapsed ? "Expand sidebar" : "Collapse sidebar"}
+      >
+        {isCollapsed ? (
+          <ChevronRight className="h-3 w-3" />
+        ) : (
+          <ChevronLeft className="h-3 w-3" />
         )}
-        <button
-          onClick={toggle}
-          className={cn(
-            "p-1.5 rounded-md text-slate-400 hover:text-slate-700 hover:bg-slate-100 dark:hover:text-slate-200 dark:hover:bg-slate-800 transition-colors shrink-0",
-            isCollapsed && "mx-auto",
-          )}
-          title={isCollapsed ? "Expand sidebar" : "Collapse sidebar"}
+      </button>
+
+      {/* Header */}
+      <div className="h-14 flex items-center px-3 border-b border-slate-200 dark:border-slate-800 overflow-hidden">
+        <Link
+          href="/dashboard"
+          className="shrink-0 flex items-center gap-2 min-w-0"
         >
-          {isCollapsed ? (
-            <ChevronRight className="h-4 w-4" />
-          ) : (
-            <ChevronLeft className="h-4 w-4" />
+          <Image
+            src="/Small_logo.svg"
+            alt="Bioceutica Creators"
+            width={28}
+            height={28}
+            className="object-contain shrink-0"
+            priority
+          />
+          {!isCollapsed && (
+            <span className="font-bold text-slate-900 dark:text-slate-100 text-base truncate">
+              Bioceutica Creators
+            </span>
           )}
-        </button>
+        </Link>
       </div>
 
       {/* Nav */}

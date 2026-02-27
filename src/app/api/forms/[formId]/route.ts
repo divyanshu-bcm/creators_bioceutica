@@ -51,12 +51,16 @@ export async function PUT(request: Request, { params }: Params) {
   const supabase = createServiceRoleClient();
   const body = await request.json();
 
+  // Build update payload — only include fields explicitly provided
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const updatePayload: Record<string, any> = {};
+  if ("title" in body) updatePayload.title = body.title;
+  if ("description" in body) updatePayload.description = body.description;
+  if ("welcome_page" in body) updatePayload.welcome_page = body.welcome_page;
+
   const { data, error } = await supabase
     .from("forms")
-    .update({
-      title: body.title,
-      description: body.description,
-    })
+    .update(updatePayload)
     .eq("id", formId)
     .select()
     .single();
