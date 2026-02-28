@@ -196,12 +196,11 @@ export function FormRenderer({ form, previewMode = false }: FormRendererProps) {
 
                 {/* Welcome text */}
                 {wp.text && (
-                  <p
-                    className="text-slate-600 whitespace-pre-wrap text-center leading-relaxed"
+                  <div
+                    className="text-slate-600 leading-relaxed **:max-w-full"
                     style={toCssStyle(wp.ui_styles?.welcome_text)}
-                  >
-                    {wp.text}
-                  </p>
+                    dangerouslySetInnerHTML={{ __html: wp.text }}
+                  />
                 )}
 
                 {/* T&C checkboxes */}
@@ -475,11 +474,10 @@ function FieldRenderer({ field, value, onChange, error }: FieldRendererProps) {
     const paragraphStyle = toCssStyle(getFieldStyle(field));
     return (
       <div
-        className="text-sm leading-relaxed whitespace-pre-wrap text-slate-700"
+        className="text-sm leading-relaxed text-slate-700 **:max-w-full"
         style={paragraphStyle}
-      >
-        {field.label}
-      </div>
+        dangerouslySetInnerHTML={{ __html: field.label }}
+      />
     );
   }
 

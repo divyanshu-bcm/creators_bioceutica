@@ -17,6 +17,7 @@ import { useFormBuilder } from "@/hooks/useFormBuilder";
 import { FieldToolbar } from "./FieldToolbar";
 import { FieldCard } from "./FieldCard";
 import { ElementStyleEditor } from "./ElementStyleEditor";
+import { RichTextEditor } from "./RichTextEditor";
 import { FormRenderer } from "@/components/renderer/FormRenderer";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -885,12 +886,11 @@ function WelcomePageEditor({
             Welcome Text
           </h3>
         </div>
-        <Textarea
+        <RichTextEditor
           value={wp.text}
-          onChange={(e) => onChange({ ...wp, text: e.target.value })}
+          onChange={(html) => onChange({ ...wp, text: html })}
           placeholder="Write a welcome message for your respondents…"
-          className="resize-none text-sm"
-          rows={5}
+          minHeight={120}
         />
         <p className="text-xs text-slate-400 mt-1.5">
           This text is displayed to respondents before they start the form.

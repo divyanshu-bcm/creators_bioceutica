@@ -10,6 +10,7 @@ import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { ImageLibraryModal } from "./ImageLibraryModal";
 import { ElementStyleEditor } from "./ElementStyleEditor";
+import { RichTextEditor } from "./RichTextEditor";
 import {
   ChevronUp,
   ChevronDown,
@@ -390,14 +391,13 @@ export function FieldCard({
             <>
               <div className="space-y-1">
                 <Label>Content</Label>
-                <Textarea
+                <RichTextEditor
                   value={localField.label ?? ""}
-                  onChange={(e) =>
-                    setLocalField((f) => ({ ...f, label: e.target.value }))
+                  onChange={(html) =>
+                    setLocalField((f) => ({ ...f, label: html }))
                   }
                   placeholder="Type your paragraph text here…"
-                  rows={5}
-                  className="resize-none"
+                  minHeight={120}
                 />
               </div>
               <ElementStyleEditor
@@ -553,9 +553,10 @@ export function FieldCard({
 
       {/* Paragraph preview (non-editing mode) */}
       {!editing && isParagraph && field.label && (
-        <div className="mt-2 text-sm text-slate-600 dark:text-slate-400 whitespace-pre-wrap leading-relaxed">
-          {field.label}
-        </div>
+        <div
+          className="mt-2 text-sm text-slate-600 dark:text-slate-400 leading-relaxed"
+          dangerouslySetInnerHTML={{ __html: field.label }}
+        />
       )}
     </div>
   );
