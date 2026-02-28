@@ -11,21 +11,21 @@ export default async function DashboardLayout({
 }) {
   const supabase = await createSessionClient();
   const {
-    data: { session },
-  } = await supabase.auth.getSession();
+    data: { user },
+  } = await supabase.auth.getUser();
 
-  if (!session) redirect("/login");
+  if (!user) redirect("/login");
 
   const admin = createServiceRoleClient();
   const { data: profile } = await admin
     .from("profiles")
     .select("full_name, role, email")
-    .eq("id", session.user.id)
+    .eq("id", user.id)
     .single();
 
   const userRole = (profile?.role ?? "user") as "admin" | "user";
   const userName = profile?.full_name ?? "";
-  const userEmail = profile?.email ?? session.user.email ?? "";
+  const userEmail = profile?.email ?? user.email ?? "";
 
   return (
     <div className="flex h-screen overflow-hidden bg-slate-50 dark:bg-slate-950">

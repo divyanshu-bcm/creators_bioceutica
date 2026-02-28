@@ -17,9 +17,9 @@ export default async function ContentDetailPageRoute({ params }: PageProps) {
   // Auth guard
   const session = await createSessionClient();
   const {
-    data: { session: userSession },
-  } = await session.auth.getSession();
-  if (!userSession) redirect("/login");
+    data: { user },
+  } = await session.auth.getUser();
+  if (!user) redirect("/login");
 
   const config = getCreatorTableConfig("content");
   if (!config) notFound();

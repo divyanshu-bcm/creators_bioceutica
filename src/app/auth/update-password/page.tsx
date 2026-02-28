@@ -30,8 +30,8 @@ export default function UpdatePasswordPage() {
 
     if (!hash || !hash.includes("access_token")) {
       // No hash tokens — maybe session already exists (PKCE flow or cookie)
-      supabase.auth.getSession().then(({ data }) => {
-        if (data.session) setSessionReady(true);
+      supabase.auth.getUser().then(({ data }) => {
+        if (data.user) setSessionReady(true);
       });
       return;
     }
@@ -71,8 +71,8 @@ export default function UpdatePasswordPage() {
 
     // Double-check we have a session
     if (!sessionReady) {
-      const { data } = await supabase.auth.getSession();
-      if (!data.session) {
+      const { data } = await supabase.auth.getUser();
+      if (!data.user) {
         setError(
           "Session expired or invalid link. Please ask your admin to resend the invite.",
         );

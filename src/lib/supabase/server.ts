@@ -62,10 +62,10 @@ export async function createSessionClient() {
 export async function requireAuth(): Promise<{ userId: string }> {
   const client = await createSessionClient();
   const {
-    data: { session },
-  } = await client.auth.getSession();
-  if (!session) throw Object.assign(new Error("Unauthorized"), { status: 401 });
-  return { userId: session.user.id };
+    data: { user },
+  } = await client.auth.getUser();
+  if (!user) throw Object.assign(new Error("Unauthorized"), { status: 401 });
+  return { userId: user.id };
 }
 
 /** Anon client without a user session — for public form rendering. */
