@@ -361,19 +361,55 @@ export function FormRenderer({ form, previewMode = false }: FormRendererProps) {
           {/* Progress bar (multi-step only) */}
           {totalSteps > 1 && (
             <div className="mb-6">
-              <div className="flex items-center justify-between text-sm text-slate-500 mb-2">
+              <div className="flex items-center justify-between text-sm text-slate-500 mb-3">
                 <span className="font-medium">{step.title}</span>
                 <span>
                   {currentStep + 1} / {totalSteps}
                 </span>
               </div>
-              <div className="h-1.5 bg-slate-200 rounded-full overflow-hidden">
-                <div
-                  className="h-full bg-slate-900 rounded-full transition-all duration-500"
-                  style={{
-                    width: `${((currentStep + 1) / totalSteps) * 100}%`,
-                  }}
-                />
+              <div className="relative h-5 flex items-center">
+                {/* Track */}
+                <div className="absolute inset-x-0 h-1.5 bg-slate-200 rounded-full">
+                  <div
+                    className="h-full bg-slate-900 rounded-full transition-all duration-500"
+                    style={{
+                      width:
+                        totalSteps > 1
+                          ? `${(currentStep / (totalSteps - 1)) * 100}%`
+                          : "100%",
+                    }}
+                  />
+                </div>
+                {/* Step dots */}
+                <div className="relative w-full flex items-center justify-between">
+                  {form.steps.map((_, i) => {
+                    const done = i < currentStep;
+                    const active = i === currentStep;
+                    return (
+                      <span
+                        key={i}
+                        className={cn(
+                          "relative flex h-4 w-4 items-center justify-center rounded-full border-2 transition-all duration-300",
+                          done
+                            ? "bg-slate-900 border-slate-900"
+                            : active
+                              ? "bg-white border-slate-900"
+                              : "bg-slate-200 border-slate-300",
+                        )}
+                      >
+                        {active && (
+                          <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-slate-500 opacity-40" />
+                        )}
+                        {active && (
+                          <span className="relative inline-flex h-2 w-2 rounded-full bg-slate-900" />
+                        )}
+                        {done && (
+                          <span className="h-1.5 w-1.5 rounded-full bg-white" />
+                        )}
+                      </span>
+                    );
+                  })}
+                </div>
               </div>
             </div>
           )}
@@ -404,6 +440,20 @@ export function FormRenderer({ form, previewMode = false }: FormRendererProps) {
                 <Button
                   variant="outline"
                   onClick={handleBack}
+                  style={toCssStyle(stepButtonStyles?.prev_button)}
+                  className={cn(
+                    stepButtonStyles?.prev_button?.border_color && "border",
+                  )}
+                >
+                  ← Back
+                </Button>
+              ) : wp ? (
+                <Button
+                  variant="outline"
+                  onClick={() => {
+                    setPhase("welcome");
+                    window.scrollTo({ top: 0, behavior: "smooth" });
+                  }}
                   style={toCssStyle(stepButtonStyles?.prev_button)}
                   className={cn(
                     stepButtonStyles?.prev_button?.border_color && "border",
