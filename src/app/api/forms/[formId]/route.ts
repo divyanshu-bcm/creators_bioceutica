@@ -57,6 +57,8 @@ export async function PUT(request: Request, { params }: Params) {
   if ("title" in body) updatePayload.title = body.title;
   if ("description" in body) updatePayload.description = body.description;
   if ("welcome_page" in body) updatePayload.welcome_page = body.welcome_page;
+  if ("thank_you_page" in body)
+    updatePayload.thank_you_page = body.thank_you_page;
 
   const { data, error } = await supabase
     .from("forms")

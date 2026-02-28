@@ -126,3 +126,11 @@ ALTER TYPE field_type ADD VALUE IF NOT EXISTS 'address_group';
 -- 9. Add boolean field type to the enum
 -- ============================================================
 ALTER TYPE field_type ADD VALUE IF NOT EXISTS 'boolean';
+
+-- ============================================================
+-- 10. Forms — add thank_you_page JSONB column
+-- ============================================================
+-- Stores the optional thank you page config: title and text.
+-- Structure: { title, text }
+alter table public.forms
+  add column if not exists thank_you_page jsonb;

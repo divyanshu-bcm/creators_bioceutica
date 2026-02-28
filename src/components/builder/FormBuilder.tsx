@@ -8,11 +8,12 @@ import type {
   FormField,
   WelcomePage,
   WelcomeTerm,
+  ThankYouPage,
   ElementColorStyle,
   FormUiStyles,
   StepElementStyles,
 } from "@/lib/types";
-import { defaultWelcomePage } from "@/lib/types";
+import { defaultWelcomePage, defaultThankYouPage } from "@/lib/types";
 import { useFormBuilder } from "@/hooks/useFormBuilder";
 import { FieldToolbar } from "./FieldToolbar";
 import { FieldCard } from "./FieldCard";
@@ -93,7 +94,14 @@ export function FormBuilder({ form }: FormBuilderProps) {
   const [welcomePage, setWelcomePage] = useState<WelcomePage>(
     form.welcome_page ?? defaultWelcomePage(),
   );
-  const [activeView, setActiveView] = useState<"step" | "welcome">("step");
+  const [activeView, setActiveView] = useState<"step" | "welcome" | "thankyou">(
+    "step",
+  );
+
+  // Thank you page
+  const [thankYouPage, setThankYouPage] = useState<ThankYouPage>(
+    form.thank_you_page ?? defaultThankYouPage(),
+  );
 
   const activeStep = builder.steps.find((s) => s.id === builder.activeStepId);
 
@@ -143,6 +151,21 @@ export function FormBuilder({ form }: FormBuilderProps) {
   async function handleDeleteForm() {
     await fetch(`/api/forms/${form.id}`, { method: "DELETE" });
     router.push("/dashboard");
+  }
+
+  // ─── Thank you page ─────────────────────────────────────────────────────
+  async function saveThankYouPage(tp: ThankYouPage) {
+    await fetch(`/api/forms/${form.id}`, {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ thank_you_page: tp }),
+    });
+    if (isPublished) setHasUnpublishedChanges(true);
+  }
+
+  function handleThankYouPageChange(updated: ThankYouPage) {
+    setThankYouPage(updated);
+    saveThankYouPage(updated);
   }
 
   // ─── Welcome page ─────────────────────────────────────────────────────────
@@ -545,6 +568,18 @@ export function FormBuilder({ form }: FormBuilderProps) {
             >
               <Plus className="h-3.5 w-3.5 mr-1" /> Add Step
             </Button>
+            {/* Thank You tab — always visible, non-removable */}
+            <button
+              onClick={() => setActiveView("thankyou")}
+              className={cn(
+                "px-3 py-1.5 rounded-md text-sm font-medium transition-colors border shrink-0",
+                activeView === "thankyou"
+                  ? "bg-emerald-600 text-white border-emerald-600"
+                  : "bg-white text-emerald-600 border-emerald-300 hover:bg-emerald-50 dark:bg-slate-800 dark:text-emerald-400 dark:border-emerald-700 dark:hover:bg-slate-700",
+              )}
+            >
+              ✓ Thank You
+            </button>
           </div>
 
           {/* Step hint */}
@@ -554,12 +589,17 @@ export function FormBuilder({ form }: FormBuilderProps) {
             </p>
           )}
 
-          {/* Field canvas or Welcome Page editor */}
+          {/* Field canvas, Welcome Page editor, or Thank You editor */}
           {activeView === "welcome" ? (
             <WelcomePageEditor
               welcomePage={welcomePage}
               onChange={handleWelcomePageChange}
               onStartButtonStyleChange={updateStartButtonStyle}
+            />
+          ) : activeView === "thankyou" ? (
+            <ThankYouPageEditor
+              thankYouPage={thankYouPage}
+              onChange={handleThankYouPageChange}
             />
           ) : (
             <div className="space-y-3">
@@ -613,35 +653,39 @@ export function FormBuilder({ form }: FormBuilderProps) {
         <div className="w-52 shrink-0 self-start sticky top-0 max-h-[calc(100vh-3.5rem)] overflow-y-auto">
           {activeView === "step" && <FieldToolbar onAdd={handleAddField} />}
 
-          {/* Welcome Page toggle */}
-          <div
-            className={cn(
-              "bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl p-4",
-              activeView === "step" ? "mt-4" : "",
-            )}
-          >
-            <p className="text-xs font-semibold text-slate-400 dark:text-slate-500 uppercase tracking-wide mb-2">
-              Welcome Page
-            </p>
-            <Button
-              variant={welcomePage.enabled ? "destructive" : "outline"}
-              size="sm"
-              className="w-full"
-              onClick={handleToggleWelcomePage}
+          {/* Welcome Page toggle — hidden when editing Thank You */}
+          {activeView !== "thankyou" && (
+            <div
+              className={cn(
+                "bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl p-4",
+                activeView === "step" ? "mt-4" : "",
+              )}
             >
-              {welcomePage.enabled ? "Remove Welcome Page" : "Add Welcome Page"}
-            </Button>
-            {welcomePage.enabled && activeView !== "welcome" && (
+              <p className="text-xs font-semibold text-slate-400 dark:text-slate-500 uppercase tracking-wide mb-2">
+                Welcome Page
+              </p>
               <Button
-                variant="ghost"
+                variant={welcomePage.enabled ? "destructive" : "outline"}
                 size="sm"
-                className="w-full mt-1 text-violet-600 hover:text-violet-700"
-                onClick={() => setActiveView("welcome")}
+                className="w-full"
+                onClick={handleToggleWelcomePage}
               >
-                Edit Welcome Page
+                {welcomePage.enabled
+                  ? "Remove Welcome Page"
+                  : "Add Welcome Page"}
               </Button>
-            )}
-          </div>
+              {welcomePage.enabled && activeView !== "welcome" && (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="w-full mt-1 text-violet-600 hover:text-violet-700"
+                  onClick={() => setActiveView("welcome")}
+                >
+                  Edit Welcome Page
+                </Button>
+              )}
+            </div>
+          )}
 
           <div className="mt-4 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl p-4">
             <p className="text-xs font-semibold text-slate-400 dark:text-slate-500 uppercase tracking-wide mb-2">
@@ -720,6 +764,7 @@ export function FormBuilder({ form }: FormBuilderProps) {
                 slug: form.slug ?? "preview",
                 is_published: false,
                 welcome_page: welcomePage,
+                thank_you_page: thankYouPage,
               }}
               previewMode
             />
@@ -1043,6 +1088,69 @@ function WelcomePageEditor({
           />
         </div>
       </div>
+    </div>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Thank You Page Editor
+// ─────────────────────────────────────────────────────────────────────────────
+
+interface ThankYouPageEditorProps {
+  thankYouPage: ThankYouPage;
+  onChange: (updated: ThankYouPage) => void;
+}
+
+function ThankYouPageEditor({
+  thankYouPage: tp,
+  onChange,
+}: ThankYouPageEditorProps) {
+  return (
+    <div className="space-y-6">
+      {/* ── Title ── */}
+      <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl p-5">
+        <div className="flex items-center gap-2 mb-3">
+          <Check className="h-4 w-4 text-emerald-500" />
+          <h3 className="text-sm font-semibold text-slate-700 dark:text-slate-200">
+            Thank You Title
+          </h3>
+        </div>
+        <Input
+          value={tp.title}
+          onChange={(e) => onChange({ ...tp, title: e.target.value })}
+          placeholder="Welcome to Bioceutica Milano. Looking forward to work ✨"
+          className="text-sm"
+        />
+        <p className="text-xs text-slate-400 mt-1.5">
+          The heading shown after the form is submitted.
+        </p>
+      </div>
+
+      {/* ── Body text ── */}
+      <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl p-5">
+        <div className="flex items-center gap-2 mb-3">
+          <AlignLeft className="h-4 w-4 text-slate-400" />
+          <h3 className="text-sm font-semibold text-slate-700 dark:text-slate-200">
+            Thank You Message
+          </h3>
+        </div>
+        <Textarea
+          value={tp.text}
+          onChange={(e) => onChange({ ...tp, text: e.target.value })}
+          placeholder="Your response has been received and will be reviewed shortly."
+          className="text-sm resize-none"
+          rows={3}
+        />
+        <p className="text-xs text-slate-400 mt-1.5">
+          The supporting text shown below the title.
+        </p>
+      </div>
+
+      {/* ── Preview note ── */}
+      <p className="text-xs text-slate-400 text-center">
+        This page is shown after the respondent submits the form. It cannot be
+        removed.
+      </p>
     </div>
   );
 }

@@ -2,7 +2,10 @@
 
 import { useState, useEffect } from "react";
 import type { CSSProperties } from "react";
+import Lottie from "lottie-react";
+import celebrateAnimation from "@/../public/animations/celebrate.json";
 import type { FormFull, FormField, ElementColorStyle, SubField } from "@/lib/types";
+import { defaultThankYouPage } from "@/lib/types";
 import { useStepProgress } from "@/hooks/useStepProgress";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -312,31 +315,25 @@ export function FormRenderer({ form, previewMode = false }: FormRendererProps) {
 
   // ─── Thank you screen ─────────────────────────────────────────────────────
   if (submitted) {
+    const ty = form.thank_you_page ?? defaultThankYouPage();
     return (
-      <div className="min-h-screen bg-slate-50 px-4 flex flex-col">
+      <div className="min-h-screen bg-linear-to-br from-slate-50 to-emerald-50/40 px-4 flex flex-col">
         <div className="flex-1 flex items-center justify-center">
-          <div className="text-center max-w-sm">
-            <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
-              <svg
-                className="h-8 w-8 text-green-600"
-                fill="none"
-                viewBox="0 0 24 24"
-                stroke="currentColor"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M5 13l4 4L19 7"
-                />
-              </svg>
+          <div className="text-center max-w-sm w-full">
+            {/* Lottie animation */}
+            <div className="mx-auto mb-2" style={{ width: 160, height: 160 }}>
+              <Lottie
+                animationData={celebrateAnimation}
+                loop={false}
+                style={{ width: "100%", height: "100%" }}
+              />
             </div>
-            <h1 className="text-2xl font-bold text-slate-900 mb-2">
-              Thank you!
+            <h1 className="text-2xl font-bold text-slate-900 mb-3 leading-snug">
+              {ty.title || "Welcome to Bioceutica Milano. Looking forward to work ✨"}
             </h1>
-            <p className="text-slate-500">
-              Your response has been submitted successfully.
-            </p>
+            {ty.text && (
+              <p className="text-slate-500 text-sm leading-relaxed">{ty.text}</p>
+            )}
           </div>
         </div>
 

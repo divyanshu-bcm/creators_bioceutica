@@ -52,6 +52,18 @@ export const defaultWelcomePage = (): WelcomePage => ({
 });
 // ──────────────────────────────────────────────
 
+// ─── Thank You Page ───────────────────────────
+export interface ThankYouPage {
+  title: string;
+  text: string;
+}
+
+export const defaultThankYouPage = (): ThankYouPage => ({
+  title: "Welcome to Bioceutica Milano. Looking forward to work ✨",
+  text: "Your response has been received and will be reviewed shortly.",
+});
+// ──────────────────────────────────────────────
+
 export type SubFieldInputType = "text" | "dropdown";
 
 export interface SubField {
@@ -95,6 +107,7 @@ export interface Form {
   is_published: boolean;
   user_id: string | null;
   welcome_page: WelcomePage | null;
+  thank_you_page: ThankYouPage | null;
   created_at: string;
   updated_at: string;
 }
