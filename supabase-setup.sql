@@ -114,3 +114,15 @@ alter table public.forms
 -- 7. Add paragraph field type to the field_type enum
 -- ============================================================
 ALTER TYPE field_type ADD VALUE IF NOT EXISTS 'paragraph';
+
+-- ============================================================
+-- 8. Add group, name_group, address_group field types to the enum
+-- ============================================================
+ALTER TYPE field_type ADD VALUE IF NOT EXISTS 'group';
+ALTER TYPE field_type ADD VALUE IF NOT EXISTS 'name_group';
+ALTER TYPE field_type ADD VALUE IF NOT EXISTS 'address_group';
+
+-- ============================================================
+-- 9. Add boolean field type to the enum
+-- ============================================================
+ALTER TYPE field_type ADD VALUE IF NOT EXISTS 'boolean';

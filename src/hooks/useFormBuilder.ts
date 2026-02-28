@@ -2,6 +2,8 @@
 
 import { useState, useCallback } from "react";
 import type { FormField, FormStep, FieldType } from "@/lib/types";
+import { PREDEFINED_TEMPLATES } from "@/lib/predefined-groups";
+import type { PredefinedGroupType } from "@/lib/predefined-groups";
 
 interface BuilderState {
   steps: (FormStep & { fields: FormField[] })[];
@@ -104,8 +106,31 @@ export function useFormBuilder(initial: BuilderState) {
         ...(step?.fields.map((f) => f.field_order) ?? []),
         -1,
       );
+      const isPredefinedGroup =
+        fieldType === "name_group" || fieldType === "address_group";
+
       const defaultLabel =
-        fieldType === "image" ? "" : `New ${fieldType} field`;
+        fieldType === "image"
+          ? ""
+          : isPredefinedGroup
+            ? PREDEFINED_TEMPLATES[fieldType as PredefinedGroupType].defaultLabel
+            : `New ${fieldType} field`;
+
+      const defaultValidation =
+        fieldType === "group"
+          ? {
+              sub_fields: [
+                { id: crypto.randomUUID(), label: "", placeholder: "" },
+                { id: crypto.randomUUID(), label: "", placeholder: "" },
+              ],
+            }
+          : isPredefinedGroup
+            ? {
+                sub_fields: PREDEFINED_TEMPLATES[
+                  fieldType as PredefinedGroupType
+                ].subFields.map((sf) => ({ ...sf, id: crypto.randomUUID() })),
+              }
+            : null;
 
       const res = await fetch(`/api/forms/${formId}/fields`, {
         method: "POST",
@@ -117,7 +142,10 @@ export function useFormBuilder(initial: BuilderState) {
           field_order: maxOrder + 1,
           options: ["dropdown", "radio", "checkbox"].includes(fieldType)
             ? ["Option 1"]
-            : null,
+            : fieldType === "boolean"
+              ? ["Yes", "No"]
+              : null,
+          validation: defaultValidation,
         }),
       });
       if (!res.ok) return;

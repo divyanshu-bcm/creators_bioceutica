@@ -52,6 +52,24 @@ export const defaultWelcomePage = (): WelcomePage => ({
 });
 // ──────────────────────────────────────────────
 
+export type SubFieldInputType = "text" | "dropdown";
+
+export interface SubField {
+  id: string;
+  label: string;
+  placeholder: string;
+  /** Per-sub-field required flag (used by predefined group types) */
+  is_required?: boolean;
+  /** Input type for predefined group sub-fields */
+  input_type?: SubFieldInputType;
+  /** Options list if input_type === "dropdown" */
+  options?: string[];
+  /** Whether this sub-field is visible in the rendered form */
+  enabled?: boolean;
+}
+
+export type LabelAlign = "left" | "center" | "right";
+
 export type FieldType =
   | "text"
   | "textarea"
@@ -63,7 +81,11 @@ export type FieldType =
   | "radio"
   | "datetime"
   | "image"
-  | "paragraph";
+  | "paragraph"
+  | "group"
+  | "name_group"
+  | "address_group"
+  | "boolean";
 
 export interface Form {
   id: string;
@@ -102,7 +124,11 @@ export interface FormField {
   image_url: string | null;
   image_alt: string | null;
   validation:
-    | (Record<string, unknown> & { appearance?: ElementColorStyle })
+    | (Record<string, unknown> & {
+        appearance?: ElementColorStyle;
+        label_align?: LabelAlign;
+        required_options?: string[];
+      })
     | null;
   is_draft: boolean;
   draft_parent_id: string | null;

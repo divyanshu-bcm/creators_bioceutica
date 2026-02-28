@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import type { CSSProperties } from "react";
-import type { FormFull, FormField, ElementColorStyle } from "@/lib/types";
+import type { FormFull, FormField, ElementColorStyle, SubField } from "@/lib/types";
 import { useStepProgress } from "@/hooks/useStepProgress";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -110,6 +110,32 @@ export function FormRenderer({ form, previewMode = false }: FormRendererProps) {
     for (const field of step.fields) {
       if (field.field_type === "image") continue;
       if (field.field_type === "paragraph") continue;
+      if (field.field_type === "group") {
+        if (!field.is_required) continue;
+        const subFields = (field.validation?.sub_fields ?? []) as SubField[];
+        const groupVal = (answers[field.id] ?? {}) as Record<string, string>;
+        const allFilled = subFields
+          .filter((sf) => sf.label.trim() !== "")
+          .every((sf) => (groupVal[sf.id] ?? "").trim() !== "");
+        if (!allFilled) {
+          newErrors[field.id] = "Please fill in all fields";
+        }
+        continue;
+      }
+      if (
+        field.field_type === "name_group" ||
+        field.field_type === "address_group"
+      ) {
+        const subFields = (field.validation?.sub_fields ?? []) as SubField[];
+        const groupVal = (answers[field.id] ?? {}) as Record<string, string>;
+        const hasRequiredEmpty = subFields
+          .filter((sf) => sf.enabled !== false && sf.is_required === true)
+          .some((sf) => (groupVal[sf.id] ?? "").trim() === "");
+        if (hasRequiredEmpty) {
+          newErrors[field.id] = "Please fill in all required fields";
+        }
+        continue;
+      }
       if (field.is_required) {
         const val = answers[field.id];
         if (
@@ -119,6 +145,20 @@ export function FormRenderer({ form, previewMode = false }: FormRendererProps) {
           (Array.isArray(val) && val.length === 0)
         ) {
           newErrors[field.id] = "This field is required";
+        }
+      }
+      // Checkbox: individual options marked as required
+      if (field.field_type === "checkbox") {
+        const reqOpts =
+          (field.validation?.required_options as string[] | undefined) ?? [];
+        if (reqOpts.length > 0) {
+          const checked = Array.isArray(answers[field.id])
+            ? (answers[field.id] as string[])
+            : [];
+          const missing = reqOpts.filter((r) => !checked.includes(r));
+          if (missing.length > 0) {
+            newErrors[field.id] = `Please also check: ${missing.join(", ")}`;
+          }
         }
       }
     }
@@ -455,6 +495,10 @@ function FieldRenderer({ field, value, onChange, error }: FieldRendererProps) {
     fieldStyle?.border_color && "border",
   );
 
+  const errorText = error && (
+    <p className="text-xs text-red-600 mt-1">{error}</p>
+  );
+
   if (field.field_type === "image") {
     if (!field.image_url) return null;
     return (
@@ -465,6 +509,134 @@ function FieldRenderer({ field, value, onChange, error }: FieldRendererProps) {
           className="rounded-lg max-w-full"
           style={{ display: "block" }}
         />
+      </div>
+    );
+  }
+
+  if (field.field_type === "group") {
+    const subFields = (field.validation?.sub_fields ?? []) as SubField[];
+    const groupValue = (value ?? {}) as Record<string, string>;
+    return (
+      <div className="space-y-3">
+        <div>
+          <Label className="text-slate-900" style={styleCss}>
+            {field.label}
+            {field.is_required && (
+              <span className="text-red-500 ml-1">*</span>
+            )}
+          </Label>
+          {field.helper_text && (
+            <p className="text-xs text-slate-400 mt-0.5">{field.helper_text}</p>
+          )}
+        </div>
+        <div className="space-y-3 pl-3 border-l-2 border-slate-200">
+          {subFields.map((sf) => (
+            <div key={sf.id} className="space-y-1">
+              {sf.label && (
+                <Label
+                  className="text-sm font-normal text-slate-700"
+                  style={
+                    fieldStyle?.text_color
+                      ? { color: fieldStyle.text_color }
+                      : undefined
+                  }
+                >
+                  {sf.label}
+                </Label>
+              )}
+              <Input
+                value={groupValue[sf.id] ?? ""}
+                onChange={(e) =>
+                  onChange({ ...groupValue, [sf.id]: e.target.value })
+                }
+                placeholder={sf.placeholder || ""}
+                className={inputClass}
+                style={styleCss}
+              />
+            </div>
+          ))}
+        </div>
+        {errorText}
+      </div>
+    );
+  }
+
+  if (
+    field.field_type === "name_group" ||
+    field.field_type === "address_group"
+  ) {
+    const subFields = (field.validation?.sub_fields ?? []) as SubField[];
+    const enabled = subFields.filter((sf) => sf.enabled !== false);
+    const groupValue = (value ?? {}) as Record<string, string>;
+    return (
+      <div className="space-y-3">
+        <div>
+          <Label
+            className="text-slate-900 block"
+            style={{
+              ...(fieldStyle?.text_color ? { color: fieldStyle.text_color } : {}),
+              ...(field.validation?.label_align && field.validation.label_align !== "left"
+                ? { textAlign: field.validation.label_align as "center" | "right" }
+                : {}),
+            }}
+          >
+            {field.label}
+          </Label>
+          {field.helper_text && (
+            <p className="text-xs text-slate-400 mt-0.5">{field.helper_text}</p>
+          )}
+        </div>
+        <div className="space-y-3 pl-3 border-l-2 border-slate-200">
+          {enabled.map((sf) => (
+            <div key={sf.id} className="space-y-1">
+              {sf.label && (
+                <Label
+                  className="text-sm font-normal text-slate-700"
+                  style={
+                    fieldStyle?.text_color
+                      ? { color: fieldStyle.text_color }
+                      : undefined
+                  }
+                >
+                  {sf.label}
+                  {sf.is_required && (
+                    <span className="text-red-500 ml-1">*</span>
+                  )}
+                </Label>
+              )}
+              {sf.input_type === "dropdown" ? (
+                <Select
+                  value={groupValue[sf.id] ?? ""}
+                  onValueChange={(v) =>
+                    onChange({ ...groupValue, [sf.id]: v })
+                  }
+                >
+                  <SelectTrigger className={inputClass} style={styleCss}>
+                    <SelectValue placeholder={sf.placeholder || "Select\u2026"} />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {(sf.options ?? []).map((opt) => (
+                      <SelectItem key={opt} value={opt}>
+                        {opt}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              ) : (
+                <Input
+                  value={groupValue[sf.id] ?? ""}
+                  onChange={(e) =>
+                    onChange({ ...groupValue, [sf.id]: e.target.value })
+                  }
+                  placeholder={sf.placeholder || ""}
+                  className={inputClass}
+                  style={styleCss}
+                />
+              )}
+            </div>
+          ))}
+        </div>
+        {errorText}
       </div>
     );
   }
@@ -484,10 +656,13 @@ function FieldRenderer({ field, value, onChange, error }: FieldRendererProps) {
   const label = (
     <Label
       htmlFor={field.id}
-      className="text-slate-900"
-      style={
-        fieldStyle?.text_color ? { color: fieldStyle.text_color } : undefined
-      }
+      className="text-slate-900 block"
+      style={{
+        ...(fieldStyle?.text_color ? { color: fieldStyle.text_color } : {}),
+        ...(field.validation?.label_align && field.validation.label_align !== "left"
+          ? { textAlign: field.validation.label_align as "center" | "right" }
+          : {}),
+      }}
     >
       {field.label}
       {field.is_required && <span className="text-red-500 ml-1">*</span>}
@@ -496,10 +671,6 @@ function FieldRenderer({ field, value, onChange, error }: FieldRendererProps) {
 
   const helperText = field.helper_text && (
     <p className="text-xs text-slate-400 mt-1">{field.helper_text}</p>
-  );
-
-  const errorText = error && (
-    <p className="text-xs text-red-600 mt-1">{error}</p>
   );
 
   switch (field.field_type) {
@@ -690,6 +861,46 @@ function FieldRenderer({ field, value, onChange, error }: FieldRendererProps) {
                 </span>
               </label>
             ))}
+          </div>
+          {helperText}
+          {errorText}
+        </div>
+      );
+    }
+
+    case "boolean": {
+      const trueLabel = field.options?.[0] ?? "Yes";
+      const falseLabel = field.options?.[1] ?? "No";
+      return (
+        <div className="space-y-2">
+          {label}
+          <div className="grid grid-cols-2 gap-3">
+            <button
+              type="button"
+              onClick={() => onChange(trueLabel)}
+              className={cn(
+                "rounded-xl border-2 py-4 text-base font-semibold transition-all",
+                value === trueLabel
+                  ? "border-emerald-500 bg-emerald-50 text-emerald-700 dark:border-emerald-500 dark:bg-emerald-950/40 dark:text-emerald-300"
+                  : "border-slate-200 bg-white text-slate-700 hover:border-slate-300 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-300",
+                error && "border-red-300",
+              )}
+            >
+              {trueLabel}
+            </button>
+            <button
+              type="button"
+              onClick={() => onChange(falseLabel)}
+              className={cn(
+                "rounded-xl border-2 py-4 text-base font-semibold transition-all",
+                value === falseLabel
+                  ? "border-red-400 bg-red-50 text-red-700 dark:border-red-500 dark:bg-red-950/40 dark:text-red-300"
+                  : "border-slate-200 bg-white text-slate-700 hover:border-slate-300 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-300",
+                error && "border-red-300",
+              )}
+            >
+              {falseLabel}
+            </button>
           </div>
           {helperText}
           {errorText}

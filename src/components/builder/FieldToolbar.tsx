@@ -14,7 +14,12 @@ import {
   Calendar,
   Image,
   FileText,
+  Layers,
+  User,
+  MapPin,
+  ToggleLeft,
 } from "lucide-react";
+import { Separator } from "@/components/ui/separator";
 
 const FIELDS: { type: FieldType; label: string; icon: React.ReactNode }[] = [
   { type: "text", label: "Text", icon: <Type className="h-4 w-4" /> },
@@ -48,6 +53,21 @@ const FIELDS: { type: FieldType; label: string; icon: React.ReactNode }[] = [
     label: "Paragraph",
     icon: <FileText className="h-4 w-4" />,
   },
+  {
+    type: "group",
+    label: "Group",
+    icon: <Layers className="h-4 w-4" />,
+  },
+  {
+    type: "boolean",
+    label: "Boolean",
+    icon: <ToggleLeft className="h-4 w-4" />,
+  },
+];
+
+const PREDEFINED_FIELDS: { type: FieldType; label: string; icon: React.ReactNode }[] = [
+  { type: "name_group", label: "Name", icon: <User className="h-4 w-4" /> },
+  { type: "address_group", label: "Address", icon: <MapPin className="h-4 w-4" /> },
 ];
 
 interface FieldToolbarProps {
@@ -60,13 +80,33 @@ export function FieldToolbar({ onAdd }: FieldToolbarProps) {
       <p className="text-xs font-semibold text-slate-400 dark:text-slate-500 uppercase tracking-wide mb-3">
         Add Field
       </p>
-      <div className="grid grid-cols-2 gap-2">
+      <div className="grid grid-cols-1 gap-1.5">
         {FIELDS.map(({ type, label, icon }) => (
           <Button
             key={type}
             variant="outline"
             size="sm"
             className="justify-start gap-2 text-xs"
+            onClick={() => onAdd(type)}
+          >
+            {icon}
+            {label}
+          </Button>
+        ))}
+      </div>
+
+      <Separator className="my-3" />
+
+      <p className="text-xs font-semibold text-slate-400 dark:text-slate-500 uppercase tracking-wide mb-3">
+        Predefined
+      </p>
+      <div className="grid grid-cols-1 gap-1.5">
+        {PREDEFINED_FIELDS.map(({ type, label, icon }) => (
+          <Button
+            key={type}
+            variant="outline"
+            size="sm"
+            className="justify-start gap-2 text-xs border-dashed"
             onClick={() => onAdd(type)}
           >
             {icon}

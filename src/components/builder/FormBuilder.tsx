@@ -311,7 +311,7 @@ export function FormBuilder({ form }: FormBuilderProps) {
   return (
     <div className="min-h-screen bg-slate-50 dark:bg-slate-950">
       {/* Header */}
-      <div className="bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800 sticky top-0 z-10">
+      <div className="bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800">
         <div className="max-w-6xl mx-auto px-4 h-14 flex items-center gap-3">
           <Button
             variant="ghost"
@@ -454,7 +454,7 @@ export function FormBuilder({ form }: FormBuilderProps) {
         {/* Left: Steps + Canvas */}
         <div className="flex-1 min-w-0">
           {/* Step tabs */}
-          <div className="flex items-center gap-2 mb-4 overflow-x-auto pb-1">
+          <div className="flex flex-wrap items-center gap-2 mb-4">
             {/* Welcome tab */}
             {welcomePage.enabled && (
               <button
@@ -610,7 +610,7 @@ export function FormBuilder({ form }: FormBuilderProps) {
         </div>
 
         {/* Right: Toolbar */}
-        <div className="w-52 shrink-0">
+        <div className="w-52 shrink-0 self-start sticky top-0 max-h-[calc(100vh-3.5rem)] overflow-y-auto">
           {activeView === "step" && <FieldToolbar onAdd={handleAddField} />}
 
           {/* Welcome Page toggle */}
