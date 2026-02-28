@@ -44,6 +44,12 @@ export default async function ResponsesPage({ params }: Props) {
   function formatValue(val: unknown): string {
     if (val === undefined || val === null || val === "") return "—";
     if (Array.isArray(val)) return val.join(", ");
+    if (typeof val === "object")
+      return (
+        Object.values(val as Record<string, unknown>)
+          .filter((v) => v !== "" && v != null)
+          .join(", ") || "—"
+      );
     return String(val);
   }
 

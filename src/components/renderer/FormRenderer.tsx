@@ -922,14 +922,14 @@ function FieldRenderer({ field, value, onChange, error }: FieldRendererProps) {
       const trueLabel = field.options?.[0] ?? "Yes";
       const falseLabel = field.options?.[1] ?? "No";
       return (
-        <div className="space-y-2">
+        <div className="space-y-4">
           {label}
-          <div className="grid grid-cols-2 gap-3">
+          <div className="flex gap-3">
             <button
               type="button"
               onClick={() => onChange(trueLabel)}
               className={cn(
-                "rounded-xl border-2 py-4 text-base font-semibold transition-all",
+                "rounded-lg border-2 px-7 py-1.5 text-sm font-medium transition-all",
                 value === trueLabel
                   ? "border-emerald-500 bg-emerald-50 text-emerald-700 dark:border-emerald-500 dark:bg-emerald-950/40 dark:text-emerald-300"
                   : "border-slate-200 bg-white text-slate-700 hover:border-slate-300 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-300",
@@ -942,7 +942,7 @@ function FieldRenderer({ field, value, onChange, error }: FieldRendererProps) {
               type="button"
               onClick={() => onChange(falseLabel)}
               className={cn(
-                "rounded-xl border-2 py-4 text-base font-semibold transition-all",
+                "rounded-lg border-2 px-7 py-1.5 text-sm font-medium transition-all",
                 value === falseLabel
                   ? "border-red-400 bg-red-50 text-red-700 dark:border-red-500 dark:bg-red-950/40 dark:text-red-300"
                   : "border-slate-200 bg-white text-slate-700 hover:border-slate-300 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-300",
