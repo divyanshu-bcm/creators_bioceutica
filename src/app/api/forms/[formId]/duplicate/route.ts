@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createServiceRoleClient } from "@/lib/supabase/admin";
+import { trackFormActivity } from "@/lib/form-activity";
 
 export async function POST(
   _req: NextRequest,
@@ -78,6 +79,14 @@ export async function POST(
       }
     }
   }
+
+  await trackFormActivity({
+    formId: newForm.id,
+    action: "form_duplicated",
+    details: {
+      source_form_id: formId,
+    },
+  }).catch(() => {});
 
   return NextResponse.json({ id: newForm.id }, { status: 201 });
 }

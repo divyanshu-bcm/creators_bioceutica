@@ -99,6 +99,33 @@ export type FieldType =
   | "address_group"
   | "boolean";
 
+export interface FormActivityEntry {
+  id: string;
+  action: string;
+  at: string;
+  actor: {
+    id: string | null;
+    email: string | null;
+    full_name: string | null;
+  };
+  details?: Record<string, unknown> | null;
+}
+
+export interface Product {
+  product_id: string;
+  created_at: string;
+  sku: string | null;
+  product_name: string | null;
+}
+
+export type ProductBillingType = "paid" | "free";
+
+export interface FormProductSelection {
+  product_id: string;
+  quantity: number;
+  billing_type: ProductBillingType;
+}
+
 export interface Form {
   id: string;
   title: string;
@@ -106,6 +133,9 @@ export interface Form {
   slug: string | null;
   is_published: boolean;
   user_id: string | null;
+  webhook_url: string | null;
+  form_products: FormProductSelection[];
+  activity: FormActivityEntry[];
   welcome_page: WelcomePage | null;
   thank_you_page: ThankYouPage | null;
   created_at: string;

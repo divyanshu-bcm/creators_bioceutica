@@ -14,16 +14,17 @@ export function useTheme() {
 }
 
 export function ThemeProvider({ children }: { children: React.ReactNode }) {
-  const [theme, setTheme] = useState<Theme>("light");
+  const [theme, setTheme] = useState<Theme>(() => {
+    if (typeof window === "undefined") return "light";
+    return (localStorage.getItem("bc_theme") as Theme | null) === "dark"
+      ? "dark"
+      : "light";
+  });
 
-  // On mount, read persisted preference
+  // Sync dark class to <html> whenever theme changes
   useEffect(() => {
-    const stored = localStorage.getItem("bc_theme") as Theme | null;
-    if (stored === "dark") {
-      setTheme("dark");
-      document.documentElement.classList.add("dark");
-    }
-  }, []);
+    document.documentElement.classList.toggle("dark", theme === "dark");
+  }, [theme]);
 
   function toggle() {
     setTheme((prev) => {

@@ -4,6 +4,7 @@
 // DELETE /api/forms/[formId]/fields?fieldId=xxx  — delete field
 import { NextResponse } from "next/server";
 import { createServiceRoleClient } from "@/lib/supabase/admin";
+import { trackFormActivity } from "@/lib/form-activity";
 
 type Params = { params: Promise<{ formId: string }> };
 
@@ -46,6 +47,18 @@ export async function POST(request: Request, { params }: Params) {
 
   if (error)
     return NextResponse.json({ error: error.message }, { status: 500 });
+
+  await trackFormActivity({
+    formId,
+    action: "field_created",
+    details: {
+      field_id: data.id,
+      step_id: data.step_id,
+      field_type: data.field_type,
+      label: data.label,
+    },
+  }).catch(() => {});
+
   return NextResponse.json(data, { status: 201 });
 }
 
@@ -78,6 +91,17 @@ export async function PUT(request: Request, { params }: Params) {
       .single();
     if (error)
       return NextResponse.json({ error: error.message }, { status: 500 });
+
+    await trackFormActivity({
+      formId,
+      action: "field_updated",
+      details: {
+        field_id: data.id,
+        mode: current.is_draft ? "draft_in_place" : "meta_update",
+        updated_fields: Object.keys(updates),
+      },
+    }).catch(() => {});
+
     return NextResponse.json({ field: data });
   } else {
     // Published field being edited for the first time — create a draft shadow row
@@ -97,6 +121,18 @@ export async function PUT(request: Request, { params }: Params) {
       .single();
     if (draftErr || !draftField)
       return NextResponse.json({ error: draftErr?.message }, { status: 500 });
+
+    await trackFormActivity({
+      formId,
+      action: "field_updated",
+      details: {
+        field_id: id,
+        mode: "draft_shadow_created",
+        draft_field_id: draftField.id,
+        updated_fields: Object.keys(updates),
+      },
+    }).catch(() => {});
+
     return NextResponse.json({ field: draftField, replacedId: id });
   }
 }
@@ -120,6 +156,16 @@ export async function DELETE(request: Request, { params }: Params) {
   if (current.is_draft && !current.draft_parent_id) {
     // Pure new draft — hard delete, no published row to worry about
     await supabase.from("form_fields").delete().eq("id", fieldId);
+
+    await trackFormActivity({
+      formId,
+      action: "field_deleted",
+      details: {
+        field_id: fieldId,
+        mode: "hard_delete_draft",
+      },
+    }).catch(() => {});
+
     return NextResponse.json({ deleted: true });
   } else if (current.is_draft && current.draft_parent_id) {
     // Edit-draft — delete draft, mark published parent as pending_delete
@@ -130,6 +176,16 @@ export async function DELETE(request: Request, { params }: Params) {
       .eq("id", current.draft_parent_id)
       .select()
       .single();
+
+    await trackFormActivity({
+      formId,
+      action: "field_marked_pending_delete",
+      details: {
+        field_id: current.draft_parent_id,
+        mode: "from_draft_delete",
+      },
+    }).catch(() => {});
+
     return NextResponse.json({ field: parent, replacedId: fieldId });
   } else {
     // Published field — mark pending_delete
@@ -139,6 +195,16 @@ export async function DELETE(request: Request, { params }: Params) {
       .eq("id", fieldId)
       .select()
       .single();
+
+    await trackFormActivity({
+      formId,
+      action: "field_marked_pending_delete",
+      details: {
+        field_id: fieldId,
+        mode: "published_field",
+      },
+    }).catch(() => {});
+
     return NextResponse.json({ field: data });
   }
 }

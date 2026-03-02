@@ -4,7 +4,12 @@ import { useState, useEffect } from "react";
 import type { CSSProperties } from "react";
 import Lottie from "lottie-react";
 import celebrateAnimation from "@/../public/animations/celebrate.json";
-import type { FormFull, FormField, ElementColorStyle, SubField } from "@/lib/types";
+import type {
+  FormFull,
+  FormField,
+  ElementColorStyle,
+  SubField,
+} from "@/lib/types";
 import { defaultThankYouPage } from "@/lib/types";
 import { useStepProgress } from "@/hooks/useStepProgress";
 import { Button } from "@/components/ui/button";
@@ -37,6 +42,17 @@ function toCssStyle(style?: ElementColorStyle): CSSProperties | undefined {
 
 function getFieldStyle(field: FormField): ElementColorStyle | undefined {
   return field.validation?.appearance;
+}
+
+const PHONE_PREFIX = "+39";
+
+function extractPhoneDigits(value: unknown): string {
+  const raw = String(value ?? "").trim();
+  if (!raw) return "";
+  const withoutPrefix = raw.startsWith(PHONE_PREFIX)
+    ? raw.slice(PHONE_PREFIX.length)
+    : raw;
+  return withoutPrefix.replace(/\D/g, "");
 }
 
 export function FormRenderer({ form, previewMode = false }: FormRendererProps) {
@@ -150,6 +166,21 @@ export function FormRenderer({ form, previewMode = false }: FormRendererProps) {
           newErrors[field.id] = "This field is required";
         }
       }
+
+      if (field.field_type === "phone") {
+        const digits = extractPhoneDigits(answers[field.id]);
+        if (digits.length > 0 && (digits.length < 9 || digits.length > 10)) {
+          newErrors[field.id] = "Phone must be 9 to 10 digits";
+        }
+      }
+
+      if (field.field_type === "email") {
+        const emailValue = String(answers[field.id] ?? "").trim();
+        if (emailValue && !emailValue.includes("@")) {
+          newErrors[field.id] = "Invalid format";
+        }
+      }
+
       // Checkbox: individual options marked as required
       if (field.field_type === "checkbox") {
         const reqOpts =
@@ -329,10 +360,13 @@ export function FormRenderer({ form, previewMode = false }: FormRendererProps) {
               />
             </div>
             <h1 className="text-2xl font-bold text-slate-900 mb-3 leading-snug">
-              {ty.title || "Welcome to Bioceutica Milano. Looking forward to work ✨"}
+              {ty.title ||
+                "Welcome to Bioceutica Milano. Looking forward to work ✨"}
             </h1>
             {ty.text && (
-              <p className="text-slate-500 text-sm leading-relaxed">{ty.text}</p>
+              <p className="text-slate-500 text-sm leading-relaxed">
+                {ty.text}
+              </p>
             )}
           </div>
         </div>
@@ -568,9 +602,7 @@ function FieldRenderer({ field, value, onChange, error }: FieldRendererProps) {
         <div>
           <Label className="text-slate-900" style={styleCss}>
             {field.label}
-            {field.is_required && (
-              <span className="text-red-500 ml-1">*</span>
-            )}
+            {field.is_required && <span className="text-red-500 ml-1">*</span>}
           </Label>
           {field.helper_text && (
             <p className="text-xs text-slate-400 mt-0.5">{field.helper_text}</p>
@@ -621,9 +653,16 @@ function FieldRenderer({ field, value, onChange, error }: FieldRendererProps) {
           <Label
             className="text-slate-900 block"
             style={{
-              ...(fieldStyle?.text_color ? { color: fieldStyle.text_color } : {}),
-              ...(field.validation?.label_align && field.validation.label_align !== "left"
-                ? { textAlign: field.validation.label_align as "center" | "right" }
+              ...(fieldStyle?.text_color
+                ? { color: fieldStyle.text_color }
+                : {}),
+              ...(field.validation?.label_align &&
+              field.validation.label_align !== "left"
+                ? {
+                    textAlign: field.validation.label_align as
+                      | "center"
+                      | "right",
+                  }
                 : {}),
             }}
           >
@@ -654,12 +693,12 @@ function FieldRenderer({ field, value, onChange, error }: FieldRendererProps) {
               {sf.input_type === "dropdown" ? (
                 <Select
                   value={groupValue[sf.id] ?? ""}
-                  onValueChange={(v) =>
-                    onChange({ ...groupValue, [sf.id]: v })
-                  }
+                  onValueChange={(v) => onChange({ ...groupValue, [sf.id]: v })}
                 >
                   <SelectTrigger className={inputClass} style={styleCss}>
-                    <SelectValue placeholder={sf.placeholder || "Select\u2026"} />
+                    <SelectValue
+                      placeholder={sf.placeholder || "Select\u2026"}
+                    />
                   </SelectTrigger>
                   <SelectContent>
                     {(sf.options ?? []).map((opt) => (
@@ -706,7 +745,8 @@ function FieldRenderer({ field, value, onChange, error }: FieldRendererProps) {
       className="text-slate-900 block"
       style={{
         ...(fieldStyle?.text_color ? { color: fieldStyle.text_color } : {}),
-        ...(field.validation?.label_align && field.validation.label_align !== "left"
+        ...(field.validation?.label_align &&
+        field.validation.label_align !== "left"
           ? { textAlign: field.validation.label_align as "center" | "right" }
           : {}),
       }}
@@ -723,19 +763,12 @@ function FieldRenderer({ field, value, onChange, error }: FieldRendererProps) {
   switch (field.field_type) {
     case "text":
     case "email":
-    case "phone":
       return (
         <div className="space-y-1">
           {label}
           <Input
             id={field.id}
-            type={
-              field.field_type === "email"
-                ? "email"
-                : field.field_type === "phone"
-                  ? "tel"
-                  : "text"
-            }
+            type={field.field_type === "email" ? "email" : "text"}
             value={String(value ?? "")}
             onChange={(e) => onChange(e.target.value)}
             placeholder={field.placeholder ?? ""}
@@ -746,6 +779,50 @@ function FieldRenderer({ field, value, onChange, error }: FieldRendererProps) {
           {errorText}
         </div>
       );
+
+    case "phone": {
+      const digits = extractPhoneDigits(value).slice(0, 10);
+      return (
+        <div className="space-y-1">
+          {label}
+          <div
+            className={cn(
+              "flex items-center rounded-md border border-slate-300 bg-white text-sm",
+              "dark:border-slate-600 dark:bg-slate-800",
+              error && "border-red-400",
+              fieldStyle?.border_color && "border",
+            )}
+            style={styleCss}
+          >
+            <span className="px-3 py-2 text-slate-500 dark:text-slate-300 border-r border-slate-200 dark:border-slate-700">
+              {PHONE_PREFIX}
+            </span>
+            <Input
+              id={field.id}
+              type="text"
+              inputMode="numeric"
+              pattern="[0-9]*"
+              value={digits}
+              onChange={(e) => {
+                const nextDigits = e.target.value
+                  .replace(/\D/g, "")
+                  .slice(0, 10);
+                onChange(nextDigits);
+              }}
+              placeholder={field.placeholder ?? "9-10 digits"}
+              className="border-0 focus:ring-0 rounded-none"
+              style={
+                fieldStyle?.text_color
+                  ? { color: fieldStyle.text_color }
+                  : undefined
+              }
+            />
+          </div>
+          {helperText}
+          {errorText}
+        </div>
+      );
+    }
 
     case "number":
       return (

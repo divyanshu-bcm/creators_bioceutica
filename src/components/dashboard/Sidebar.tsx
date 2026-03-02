@@ -16,6 +16,7 @@ import {
   Video,
   Clapperboard,
   MessageSquare,
+  Package,
 } from "lucide-react";
 
 interface SidebarProps {
@@ -33,6 +34,7 @@ export function Sidebar({ userRole, userName, userEmail }: SidebarProps) {
   const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setMounted(true);
     const stored = localStorage.getItem("sidebar-collapsed");
     if (stored !== null) setCollapsed(stored === "true");
@@ -55,6 +57,7 @@ export function Sidebar({ userRole, userName, userEmail }: SidebarProps) {
   const navItems = [
     { label: "Forms", href: "/dashboard", icon: FileText },
     { label: "Responses", href: "/dashboard/responses", icon: MessageSquare },
+    { label: "Products", href: "/dashboard/products", icon: Package },
     { label: "Prospects", href: "/dashboard/prospects", icon: UserSearch },
     { label: "Creators", href: "/dashboard/creators", icon: Video },
     { label: "Content", href: "/dashboard/content", icon: Clapperboard },

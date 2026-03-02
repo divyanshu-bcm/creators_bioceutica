@@ -134,3 +134,36 @@ ALTER TYPE field_type ADD VALUE IF NOT EXISTS 'boolean';
 -- Structure: { title, text }
 alter table public.forms
   add column if not exists thank_you_page jsonb;
+
+-- ============================================================
+-- 11. Forms — add per-form webhook_url column
+-- ============================================================
+-- Optional endpoint that receives payloads when this specific form is submitted.
+alter table public.forms
+  add column if not exists webhook_url text;
+
+-- ============================================================
+-- 12. Forms — add per-form activity JSONB log
+-- ============================================================
+-- Stores an array of activity entries: [{ id, action, at, actor, details }]
+alter table public.forms
+  add column if not exists activity jsonb not null default '[]'::jsonb;
+
+-- ============================================================
+-- 13. Products table
+-- ============================================================
+create table if not exists public.products (
+  product_id uuid not null default gen_random_uuid(),
+  created_at timestamptz not null default now(),
+  sku text null,
+  product_name text null,
+  constraint products_pkey primary key (product_id)
+);
+
+-- ============================================================
+-- 14. Forms — add linked products JSONB
+-- ============================================================
+-- Stores an array like:
+-- [{ product_id, quantity, billing_type }] where billing_type is 'paid' | 'free'
+alter table public.forms
+  add column if not exists form_products jsonb not null default '[]'::jsonb;

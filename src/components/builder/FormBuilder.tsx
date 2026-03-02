@@ -6,6 +6,9 @@ import type {
   FormFull,
   FieldType,
   FormField,
+  Product,
+  FormProductSelection,
+  ProductBillingType,
   WelcomePage,
   WelcomeTerm,
   ThankYouPage,
@@ -24,6 +27,13 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import {
   Dialog,
   DialogContent,
@@ -48,14 +58,17 @@ import {
   ImageIcon,
   AlignLeft,
   ShieldCheck,
+  History,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 interface FormBuilderProps {
   form: FormFull;
+  products: Product[];
+  userRole?: "admin" | "user";
 }
 
-export function FormBuilder({ form }: FormBuilderProps) {
+export function FormBuilder({ form, products, userRole }: FormBuilderProps) {
   const router = useRouter();
   const builder = useFormBuilder({
     steps: form.steps,
@@ -103,7 +116,27 @@ export function FormBuilder({ form }: FormBuilderProps) {
     form.thank_you_page ?? defaultThankYouPage(),
   );
 
+  // Webhook
+  const [webhookUrl, setWebhookUrl] = useState(form.webhook_url ?? "");
+  const [webhookSaving, setWebhookSaving] = useState(false);
+  const [webhookTesting, setWebhookTesting] = useState(false);
+  const [webhookResult, setWebhookResult] = useState<{
+    type: "success" | "error";
+    message: string;
+  } | null>(null);
+
+  // Linked products (per form)
+  const [formProducts, setFormProducts] = useState<FormProductSelection[]>(
+    Array.isArray(form.form_products) ? form.form_products : [],
+  );
+  const [productsSaving, setProductsSaving] = useState(false);
+  const [productsResult, setProductsResult] = useState<{
+    type: "success" | "error";
+    message: string;
+  } | null>(null);
+
   const activeStep = builder.steps.find((s) => s.id === builder.activeStepId);
+  const productMap = new Map(products.map((p) => [p.product_id, p]));
 
   // ─── Form title save ─────────────────────────────────────────────────────
   async function saveTitle() {
@@ -114,6 +147,157 @@ export function FormBuilder({ form }: FormBuilderProps) {
     });
     setEditingTitle(false);
     if (isPublished) setHasUnpublishedChanges(true);
+  }
+
+  async function saveWebhookUrl() {
+    const normalizedWebhookUrl = webhookUrl.trim();
+
+    if (normalizedWebhookUrl) {
+      try {
+        new URL(normalizedWebhookUrl);
+      } catch {
+        setWebhookResult({
+          type: "error",
+          message: "Please enter a valid webhook URL",
+        });
+        return false;
+      }
+    }
+
+    setWebhookSaving(true);
+    const res = await fetch(`/api/forms/${form.id}`, {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        webhook_url: normalizedWebhookUrl ? normalizedWebhookUrl : null,
+      }),
+    });
+    setWebhookSaving(false);
+
+    if (!res.ok) {
+      const response = (await res.json().catch(() => null)) as {
+        error?: string;
+      } | null;
+      setWebhookResult({
+        type: "error",
+        message: response?.error ?? "Failed to save webhook URL",
+      });
+      return false;
+    }
+
+    setWebhookUrl(normalizedWebhookUrl);
+    setWebhookResult({
+      type: "success",
+      message: "Webhook URL saved",
+    });
+    if (isPublished) setHasUnpublishedChanges(true);
+    return true;
+  }
+
+  async function handleTestWebhook() {
+    setWebhookResult(null);
+    const saveOk = await saveWebhookUrl();
+    if (!saveOk) return;
+
+    if (!webhookUrl.trim()) {
+      setWebhookResult({
+        type: "error",
+        message: "Configure a webhook URL first",
+      });
+      return;
+    }
+
+    setWebhookTesting(true);
+    const res = await fetch(`/api/forms/${form.id}/webhook-test`, {
+      method: "POST",
+    });
+    const response = (await res.json().catch(() => null)) as {
+      status?: number;
+      message?: string;
+      error?: string;
+    } | null;
+    setWebhookTesting(false);
+
+    if (!res.ok) {
+      const statusSuffix =
+        typeof response?.status === "number"
+          ? ` (HTTP ${response.status})`
+          : "";
+      setWebhookResult({
+        type: "error",
+        message: `${response?.error ?? "Webhook test failed"}${statusSuffix}`,
+      });
+      return;
+    }
+
+    const statusSuffix =
+      typeof response?.status === "number" ? ` (HTTP ${response.status})` : "";
+    setWebhookResult({
+      type: "success",
+      message: `${response?.message ?? "Webhook test sent successfully"}${statusSuffix}`,
+    });
+  }
+
+  async function saveFormProducts(nextFormProducts: FormProductSelection[]) {
+    setProductsSaving(true);
+    const res = await fetch(`/api/forms/${form.id}`, {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ form_products: nextFormProducts }),
+    });
+    setProductsSaving(false);
+
+    if (!res.ok) {
+      const response = (await res.json().catch(() => null)) as {
+        error?: string;
+      } | null;
+      setProductsResult({
+        type: "error",
+        message: response?.error ?? "Failed to save form products",
+      });
+      return false;
+    }
+
+    setProductsResult({
+      type: "success",
+      message: "Products saved",
+    });
+    if (isPublished) setHasUnpublishedChanges(true);
+    return true;
+  }
+
+  function addLinkedProduct(productId: string) {
+    if (!productId) return;
+    if (formProducts.some((item) => item.product_id === productId)) return;
+
+    setProductsResult(null);
+    setFormProducts((prev) => [
+      ...prev,
+      {
+        product_id: productId,
+        quantity: 1,
+        billing_type: "paid",
+      },
+    ]);
+  }
+
+  function updateLinkedProduct(
+    productId: string,
+    patch: Partial<FormProductSelection>,
+  ) {
+    setProductsResult(null);
+    setFormProducts((prev) =>
+      prev.map((item) =>
+        item.product_id === productId ? { ...item, ...patch } : item,
+      ),
+    );
+  }
+
+  function removeLinkedProduct(productId: string) {
+    setProductsResult(null);
+    setFormProducts((prev) =>
+      prev.filter((item) => item.product_id !== productId),
+    );
   }
 
   // ─── Publish / Unpublish ──────────────────────────────────────────────────
@@ -689,6 +873,193 @@ export function FormBuilder({ form }: FormBuilderProps) {
 
           <div className="mt-4 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl p-4">
             <p className="text-xs font-semibold text-slate-400 dark:text-slate-500 uppercase tracking-wide mb-2">
+              Webhook
+            </p>
+            <div className="space-y-2">
+              <Input
+                value={webhookUrl}
+                onChange={(e) => {
+                  setWebhookUrl(e.target.value);
+                  setWebhookResult(null);
+                }}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") {
+                    void saveWebhookUrl();
+                  }
+                }}
+                placeholder="https://your-endpoint.com/webhook"
+                className="h-8 text-xs"
+              />
+              <div className="flex gap-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="flex-1"
+                  onClick={() => void saveWebhookUrl()}
+                  disabled={webhookSaving || webhookTesting}
+                >
+                  {webhookSaving ? (
+                    <Loader2 className="h-3.5 w-3.5 mr-1 animate-spin" />
+                  ) : null}
+                  Save
+                </Button>
+                <Button
+                  size="sm"
+                  className="flex-1"
+                  onClick={() => void handleTestWebhook()}
+                  disabled={webhookSaving || webhookTesting}
+                >
+                  {webhookTesting ? (
+                    <Loader2 className="h-3.5 w-3.5 mr-1 animate-spin" />
+                  ) : null}
+                  Test
+                </Button>
+              </div>
+              {webhookResult && (
+                <p
+                  className={cn(
+                    "text-[11px] leading-4",
+                    webhookResult.type === "success"
+                      ? "text-emerald-600 dark:text-emerald-400"
+                      : "text-red-600 dark:text-red-400",
+                  )}
+                >
+                  {webhookResult.message}
+                </p>
+              )}
+              <p className="text-[11px] text-slate-400 dark:text-slate-500">
+                Optional. If configured, every submission for this form is sent
+                to this URL.
+              </p>
+            </div>
+          </div>
+
+          <div className="mt-4 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl p-4">
+            <p className="text-xs font-semibold text-slate-400 dark:text-slate-500 uppercase tracking-wide mb-2">
+              Products
+            </p>
+
+            {products.length === 0 ? (
+              <p className="text-[11px] text-slate-400 dark:text-slate-500">
+                No products found. Add products in Dashboard → Products first.
+              </p>
+            ) : (
+              <div className="space-y-2">
+                <Select onValueChange={addLinkedProduct}>
+                  <SelectTrigger className="h-8 text-xs">
+                    <SelectValue placeholder="Add product to this form" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {products.map((product) => (
+                      <SelectItem
+                        key={product.product_id}
+                        value={product.product_id}
+                        disabled={formProducts.some(
+                          (item) => item.product_id === product.product_id,
+                        )}
+                      >
+                        {product.product_name || "Untitled product"}
+                        {product.sku ? ` (${product.sku})` : ""}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+
+                {formProducts.length > 0 ? (
+                  <div className="space-y-2">
+                    {formProducts.map((item) => {
+                      const product = productMap.get(item.product_id);
+                      return (
+                        <div
+                          key={item.product_id}
+                          className="border border-slate-200 dark:border-slate-700 rounded-md p-2"
+                        >
+                          <p className="text-xs font-medium text-slate-700 dark:text-slate-200 mb-2 truncate">
+                            {product?.product_name || "Unknown product"}
+                            {product?.sku ? ` (${product.sku})` : ""}
+                          </p>
+                          <div className="flex gap-2 items-center">
+                            <Input
+                              type="number"
+                              min={1}
+                              value={item.quantity}
+                              onChange={(e) => {
+                                const qty = Number(e.target.value);
+                                updateLinkedProduct(item.product_id, {
+                                  quantity:
+                                    Number.isFinite(qty) && qty > 0 ? qty : 1,
+                                });
+                              }}
+                              className="h-8 text-xs"
+                            />
+                            <Select
+                              value={item.billing_type}
+                              onValueChange={(value) =>
+                                updateLinkedProduct(item.product_id, {
+                                  billing_type: value as ProductBillingType,
+                                })
+                              }
+                            >
+                              <SelectTrigger className="h-8 text-xs">
+                                <SelectValue />
+                              </SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value="paid">Paid</SelectItem>
+                                <SelectItem value="free">Free</SelectItem>
+                              </SelectContent>
+                            </Select>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="h-8 w-8 text-red-500 hover:text-red-600"
+                              onClick={() =>
+                                removeLinkedProduct(item.product_id)
+                              }
+                            >
+                              <Trash2 className="h-3.5 w-3.5" />
+                            </Button>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                ) : (
+                  <p className="text-[11px] text-slate-400 dark:text-slate-500">
+                    No products linked to this form yet.
+                  </p>
+                )}
+
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="w-full"
+                  onClick={() => void saveFormProducts(formProducts)}
+                  disabled={productsSaving}
+                >
+                  {productsSaving ? (
+                    <Loader2 className="h-3.5 w-3.5 mr-1 animate-spin" />
+                  ) : null}
+                  Save Products
+                </Button>
+
+                {productsResult && (
+                  <p
+                    className={cn(
+                      "text-[11px] leading-4",
+                      productsResult.type === "success"
+                        ? "text-emerald-600 dark:text-emerald-400"
+                        : "text-red-600 dark:text-red-400",
+                    )}
+                  >
+                    {productsResult.message}
+                  </p>
+                )}
+              </div>
+            )}
+          </div>
+
+          <div className="mt-4 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl p-4">
+            <p className="text-xs font-semibold text-slate-400 dark:text-slate-500 uppercase tracking-wide mb-2">
               Form Button Colors
             </p>
             <div className="space-y-3">
@@ -730,6 +1101,19 @@ export function FormBuilder({ form }: FormBuilderProps) {
             >
               View Responses
             </Button>
+            {userRole === "admin" && (
+              <Button
+                variant="outline"
+                size="sm"
+                className="w-full mt-2"
+                onClick={() =>
+                  router.push(`/dashboard/forms/${form.id}/activity`)
+                }
+              >
+                <History className="h-3.5 w-3.5 mr-1.5" />
+                View Activity
+              </Button>
+            )}
           </div>
         </div>
       </div>

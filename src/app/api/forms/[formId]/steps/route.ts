@@ -4,6 +4,7 @@
 // DELETE /api/forms/[formId]/steps?stepId=xxx — delete step
 import { NextResponse } from "next/server";
 import { createServiceRoleClient } from "@/lib/supabase/admin";
+import { trackFormActivity } from "@/lib/form-activity";
 
 type Params = { params: Promise<{ formId: string }> };
 
@@ -38,6 +39,17 @@ export async function POST(request: Request, { params }: Params) {
 
   if (error)
     return NextResponse.json({ error: error.message }, { status: 500 });
+
+  await trackFormActivity({
+    formId,
+    action: "step_created",
+    details: {
+      step_id: data.id,
+      title: data.title,
+      step_order: data.step_order,
+    },
+  }).catch(() => {});
+
   return NextResponse.json(data, { status: 201 });
 }
 
@@ -62,6 +74,16 @@ export async function PUT(request: Request, { params }: Params) {
 
   if (error)
     return NextResponse.json({ error: error.message }, { status: 500 });
+
+  await trackFormActivity({
+    formId,
+    action: "step_updated",
+    details: {
+      step_id: data.id,
+      updated_fields: Object.keys(updates),
+    },
+  }).catch(() => {});
+
   return NextResponse.json(data);
 }
 
@@ -97,6 +119,16 @@ export async function DELETE(request: Request, { params }: Params) {
     // New draft step — hard delete step and all its draft fields
     await supabase.from("form_fields").delete().eq("step_id", stepId);
     await supabase.from("form_steps").delete().eq("id", stepId);
+
+    await trackFormActivity({
+      formId,
+      action: "step_deleted",
+      details: {
+        step_id: stepId,
+        mode: "hard_delete",
+      },
+    }).catch(() => {});
+
     return NextResponse.json({ deleted: true });
   } else {
     // Published step — mark pending_delete
@@ -104,6 +136,15 @@ export async function DELETE(request: Request, { params }: Params) {
       .from("form_steps")
       .update({ pending_delete: true })
       .eq("id", stepId);
+
+    await trackFormActivity({
+      formId,
+      action: "step_marked_pending_delete",
+      details: {
+        step_id: stepId,
+      },
+    }).catch(() => {});
+
     return NextResponse.json({ pending_delete: true });
   }
 }

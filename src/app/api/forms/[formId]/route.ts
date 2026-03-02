@@ -3,6 +3,7 @@
 // DELETE /api/forms/[formId] — delete form
 import { NextResponse } from "next/server";
 import { createServiceRoleClient } from "@/lib/supabase/admin";
+import { trackFormActivity } from "@/lib/form-activity";
 
 type Params = { params: Promise<{ formId: string }> };
 
@@ -59,6 +60,8 @@ export async function PUT(request: Request, { params }: Params) {
   if ("welcome_page" in body) updatePayload.welcome_page = body.welcome_page;
   if ("thank_you_page" in body)
     updatePayload.thank_you_page = body.thank_you_page;
+  if ("webhook_url" in body) updatePayload.webhook_url = body.webhook_url;
+  if ("form_products" in body) updatePayload.form_products = body.form_products;
 
   const { data, error } = await supabase
     .from("forms")
@@ -69,6 +72,15 @@ export async function PUT(request: Request, { params }: Params) {
 
   if (error)
     return NextResponse.json({ error: error.message }, { status: 500 });
+
+  await trackFormActivity({
+    formId,
+    action: "form_updated",
+    details: {
+      updated_fields: Object.keys(updatePayload),
+    },
+  }).catch(() => {});
+
   return NextResponse.json(data);
 }
 
@@ -76,8 +88,15 @@ export async function DELETE(_req: Request, { params }: Params) {
   const { formId } = await params;
   const supabase = createServiceRoleClient();
 
+  await trackFormActivity({
+    formId,
+    action: "form_deleted",
+    details: null,
+  }).catch(() => {});
+
   const { error } = await supabase.from("forms").delete().eq("id", formId);
   if (error)
     return NextResponse.json({ error: error.message }, { status: 500 });
+
   return NextResponse.json({ ok: true });
 }

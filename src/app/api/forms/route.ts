@@ -3,6 +3,7 @@
 import { NextResponse } from "next/server";
 import { createServiceRoleClient } from "@/lib/supabase/admin";
 import { createSessionClient } from "@/lib/supabase/server";
+import { trackFormActivity } from "@/lib/form-activity";
 
 export async function GET() {
   const supabase = createServiceRoleClient();
@@ -45,6 +46,15 @@ export async function POST(request: Request) {
 
   if (stepError)
     return NextResponse.json({ error: stepError.message }, { status: 500 });
+
+  await trackFormActivity({
+    formId: form.id,
+    action: "form_created",
+    details: {
+      title: form.title,
+      description: form.description,
+    },
+  }).catch(() => {});
 
   return NextResponse.json(form, { status: 201 });
 }

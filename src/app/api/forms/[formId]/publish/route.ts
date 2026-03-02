@@ -3,6 +3,7 @@
 import { NextResponse } from "next/server";
 import { createServiceRoleClient } from "@/lib/supabase/admin";
 import { generateSlug } from "@/lib/slugify";
+import { trackFormActivity } from "@/lib/form-activity";
 
 type Params = { params: Promise<{ formId: string }> };
 
@@ -99,6 +100,14 @@ export async function POST(request: Request, { params }: Params) {
   if (error)
     return NextResponse.json({ error: error.message }, { status: 500 });
 
+  await trackFormActivity({
+    formId,
+    action: "form_published",
+    details: {
+      slug,
+    },
+  }).catch(() => {});
+
   const origin =
     request.headers.get("origin") ??
     process.env.NEXT_PUBLIC_APP_URL ??
@@ -120,5 +129,12 @@ export async function DELETE(_req: Request, { params }: Params) {
 
   if (error)
     return NextResponse.json({ error: error.message }, { status: 500 });
+
+  await trackFormActivity({
+    formId,
+    action: "form_unpublished",
+    details: null,
+  }).catch(() => {});
+
   return NextResponse.json(data);
 }
