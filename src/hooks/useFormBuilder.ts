@@ -10,6 +10,29 @@ interface BuilderState {
   activeStepId: string;
 }
 
+function isAutoStepTitle(title: string | null | undefined): boolean {
+  return /^Step\s+\d+$/i.test((title ?? "").trim());
+}
+
+function normalizeWorkingSteps(
+  steps: (FormStep & { fields: FormField[] })[],
+): (FormStep & { fields: FormField[] })[] {
+  const active = steps
+    .filter((step) => !step.pending_delete)
+    .sort((a, b) => a.step_order - b.step_order)
+    .map((step, index) => ({
+      ...step,
+      step_order: index,
+      title: isAutoStepTitle(step.title) ? `Step ${index + 1}` : step.title,
+    }));
+
+  const pending = steps
+    .filter((step) => step.pending_delete)
+    .sort((a, b) => a.step_order - b.step_order);
+
+  return [...active, ...pending];
+}
+
 export function useFormBuilder(initial: BuilderState) {
   const [state, setState] = useState<BuilderState>(initial);
   const [saving, setSaving] = useState(false);
@@ -22,19 +45,20 @@ export function useFormBuilder(initial: BuilderState) {
 
   const addStep = useCallback(
     async (formId: string) => {
-      const maxOrder = Math.max(...state.steps.map((s) => s.step_order), -1);
+      const activeSteps = state.steps.filter((s) => !s.pending_delete);
+      const maxOrder = Math.max(...activeSteps.map((s) => s.step_order), -1);
       const res = await fetch(`/api/forms/${formId}/steps`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          title: `Step ${state.steps.length + 1}`,
+          title: `Step ${activeSteps.length + 1}`,
           step_order: maxOrder + 1,
         }),
       });
       if (!res.ok) return;
       const newStep: FormStep = await res.json();
       setState((s) => ({
-        steps: [...s.steps, { ...newStep, fields: [] }],
+        steps: normalizeWorkingSteps([...s.steps, { ...newStep, fields: [] }]),
         activeStepId: newStep.id,
       }));
     },
@@ -69,8 +93,11 @@ export function useFormBuilder(initial: BuilderState) {
         await res.json();
 
       if (result.deleted) {
+        const next = state.steps.filter((st) => st.id !== stepId);
+        const normalized = normalizeWorkingSteps(next);
+
         setState((s) => {
-          const remaining = s.steps.filter((st) => st.id !== stepId);
+          const remaining = normalized;
           const nextActive =
             s.activeStepId === stepId
               ? (remaining.find((st) => !st.pending_delete)?.id ??
@@ -79,11 +106,30 @@ export function useFormBuilder(initial: BuilderState) {
               : s.activeStepId;
           return { steps: remaining, activeStepId: nextActive };
         });
+
+        await Promise.all(
+          normalized
+            .filter((step) => !step.pending_delete)
+            .map((step) =>
+              fetch(`/api/forms/${formId}/steps`, {
+                method: "PUT",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                  id: step.id,
+                  step_order: step.step_order,
+                  title: step.title,
+                }),
+              }),
+            ),
+        );
       } else if (result.pending_delete) {
+        const next = state.steps.map((st) =>
+          st.id === stepId ? { ...st, pending_delete: true } : st,
+        );
+        const normalized = normalizeWorkingSteps(next);
+
         setState((s) => {
-          const steps = s.steps.map((st) =>
-            st.id === stepId ? { ...st, pending_delete: true } : st,
-          );
+          const steps = normalized;
           const nextActive =
             s.activeStepId === stepId
               ? (steps.find((st) => !st.pending_delete)?.id ??
@@ -92,7 +138,65 @@ export function useFormBuilder(initial: BuilderState) {
               : s.activeStepId;
           return { steps, activeStepId: nextActive };
         });
+
+        await Promise.all(
+          normalized
+            .filter((step) => !step.pending_delete)
+            .map((step) =>
+              fetch(`/api/forms/${formId}/steps`, {
+                method: "PUT",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                  id: step.id,
+                  step_order: step.step_order,
+                  title: step.title,
+                }),
+              }),
+            ),
+        );
       }
+    },
+    [state.steps],
+  );
+
+  const reorderSteps = useCallback(
+    async (formId: string, orderedStepIds: string[]) => {
+      setState((s) => {
+        const byId = new Map(s.steps.map((step) => [step.id, step]));
+        const ordered = orderedStepIds
+          .map((id) => byId.get(id))
+          .filter(Boolean) as (FormStep & { fields: FormField[] })[];
+
+        const pending = s.steps.filter((step) => step.pending_delete);
+        return {
+          ...s,
+          steps: normalizeWorkingSteps([...ordered, ...pending]),
+        };
+      });
+
+      const current = state.steps;
+      const byId = new Map(current.map((step) => [step.id, step]));
+      const ordered = orderedStepIds
+        .map((id) => byId.get(id))
+        .filter(Boolean) as (FormStep & { fields: FormField[] })[];
+      const pending = current.filter((step) => step.pending_delete);
+      const normalized = normalizeWorkingSteps([...ordered, ...pending]);
+
+      await Promise.all(
+        normalized
+          .filter((step) => !step.pending_delete)
+          .map((step) =>
+            fetch(`/api/forms/${formId}/steps`, {
+              method: "PUT",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({
+                id: step.id,
+                step_order: step.step_order,
+                title: step.title,
+              }),
+            }),
+          ),
+      );
     },
     [state.steps],
   );
@@ -434,20 +538,43 @@ export function useFormBuilder(initial: BuilderState) {
     [],
   );
 
-  const restoreStep = useCallback(async (formId: string, stepId: string) => {
-    const res = await fetch(`/api/forms/${formId}/steps`, {
-      method: "PUT",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ id: stepId, pending_delete: false }),
-    });
-    if (!res.ok) return;
-    const step: FormStep = await res.json();
-    setState((s) => ({
-      ...s,
-      steps: s.steps.map((st) => (st.id === stepId ? { ...st, ...step } : st)),
-      activeStepId: stepId,
-    }));
-  }, []);
+  const restoreStep = useCallback(
+    async (formId: string, stepId: string) => {
+      const res = await fetch(`/api/forms/${formId}/steps`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ id: stepId, pending_delete: false }),
+      });
+      if (!res.ok) return;
+      const step: FormStep = await res.json();
+      const updated = state.steps.map((st) =>
+        st.id === stepId ? { ...st, ...step } : st,
+      );
+      const normalized = normalizeWorkingSteps(updated);
+      setState((s) => ({
+        ...s,
+        steps: normalized,
+        activeStepId: stepId,
+      }));
+
+      await Promise.all(
+        normalized
+          .filter((currentStep) => !currentStep.pending_delete)
+          .map((currentStep) =>
+            fetch(`/api/forms/${formId}/steps`, {
+              method: "PUT",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({
+                id: currentStep.id,
+                step_order: currentStep.step_order,
+                title: currentStep.title,
+              }),
+            }),
+          ),
+      );
+    },
+    [state.steps],
+  );
 
   return {
     steps: state.steps,
@@ -463,6 +590,7 @@ export function useFormBuilder(initial: BuilderState) {
     duplicateField,
     moveField,
     reorderFields,
+    reorderSteps,
     restoreField,
     restoreStep,
   };

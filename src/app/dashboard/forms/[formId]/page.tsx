@@ -56,7 +56,34 @@ export default async function FormBuilderPage({ params }: Props) {
     (f) => f.is_draft || !draftFieldParentIds.has(f.id),
   );
 
-  const stepsWithFields = (steps ?? []).map((step) => ({
+  const draftStepByParentId = new Map(
+    (steps ?? [])
+      .filter((s) => s.is_draft && s.draft_parent_id)
+      .map((s) => [s.draft_parent_id as string, s]),
+  );
+
+  const publishedStepsOverlaid = (steps ?? [])
+    .filter((s) => !s.is_draft)
+    .map((step) => {
+      const draft = draftStepByParentId.get(step.id);
+      if (!draft) return step;
+      return {
+        ...step,
+        title: draft.title,
+        step_order: draft.step_order,
+        pending_delete: draft.pending_delete,
+      };
+    });
+
+  const newDraftSteps = (steps ?? []).filter(
+    (s) => s.is_draft && !s.draft_parent_id,
+  );
+
+  const workingSteps = [...publishedStepsOverlaid, ...newDraftSteps].sort(
+    (a, b) => a.step_order - b.step_order,
+  );
+
+  const stepsWithFields = workingSteps.map((step) => ({
     ...step,
     fields: workingFields.filter((f) => f.step_id === step.id),
   }));

@@ -140,6 +140,12 @@ export function FormBuilder({ form, products, userRole }: FormBuilderProps) {
 
   const activeStep = builder.steps.find((s) => s.id === builder.activeStepId);
   const productMap = new Map(products.map((p) => [p.product_id, p]));
+  const visibleSteps = [...builder.steps]
+    .filter((step) => !step.pending_delete)
+    .sort((a, b) => a.step_order - b.step_order);
+  const stepNumberById = new Map(
+    visibleSteps.map((step, index) => [step.id, index + 1]),
+  );
 
   // ─── Form title save ─────────────────────────────────────────────────────
   async function saveTitle() {
@@ -466,12 +472,24 @@ export function FormBuilder({ form, products, userRole }: FormBuilderProps) {
   }
 
   function handleDeleteStep(stepId: string) {
+    const step = builder.steps.find((s) => s.id === stepId);
+    const stepName = step?.title ?? "this step";
+    const confirmed = window.confirm(
+      `Delete ${stepName}? This action can be undone before publish.`,
+    );
+    if (!confirmed) return;
+
     builder.deleteStep(form.id, stepId);
     if (isPublished) setHasUnpublishedChanges(true);
   }
 
   function handleRenameStep(stepId: string, title: string) {
     builder.renameStep(form.id, stepId, title);
+    if (isPublished) setHasUnpublishedChanges(true);
+  }
+
+  function handleReorderSteps(orderedStepIds: string[]) {
+    builder.reorderSteps(form.id, orderedStepIds);
     if (isPublished) setHasUnpublishedChanges(true);
   }
 
@@ -522,6 +540,49 @@ export function FormBuilder({ form, products, userRole }: FormBuilderProps) {
     setDragId(null);
     setDragOverId(null);
     canDragRef.current = null;
+  }
+
+  // ─── Step tab drag-and-drop ──────────────────────────────────────────────
+  const [stepDragId, setStepDragId] = useState<string | null>(null);
+  const [stepDragOverId, setStepDragOverId] = useState<string | null>(null);
+
+  function handleStepDragStart(e: React.DragEvent, stepId: string) {
+    setStepDragId(stepId);
+    e.dataTransfer.effectAllowed = "move";
+  }
+
+  function handleStepDragOver(e: React.DragEvent, stepId: string) {
+    e.preventDefault();
+    if (stepId !== stepDragId) setStepDragOverId(stepId);
+  }
+
+  function handleStepDrop(e: React.DragEvent, targetId: string) {
+    e.preventDefault();
+    if (!stepDragId || stepDragId === targetId) {
+      setStepDragId(null);
+      setStepDragOverId(null);
+      return;
+    }
+
+    const ordered = [...visibleSteps];
+    const fromIdx = ordered.findIndex((step) => step.id === stepDragId);
+    const toIdx = ordered.findIndex((step) => step.id === targetId);
+    if (fromIdx === -1 || toIdx === -1) {
+      setStepDragId(null);
+      setStepDragOverId(null);
+      return;
+    }
+
+    const [moved] = ordered.splice(fromIdx, 1);
+    ordered.splice(toIdx, 0, moved);
+    handleReorderSteps(ordered.map((step) => step.id));
+    setStepDragId(null);
+    setStepDragOverId(null);
+  }
+
+  function handleStepDragEnd() {
+    setStepDragId(null);
+    setStepDragOverId(null);
   }
 
   return (
@@ -686,7 +747,25 @@ export function FormBuilder({ form, products, userRole }: FormBuilderProps) {
               </button>
             )}
             {builder.steps.map((step) => (
-              <div key={step.id} className="flex items-center shrink-0">
+              <div
+                key={step.id}
+                className={cn(
+                  "flex items-center shrink-0",
+                  stepDragOverId === step.id &&
+                    stepDragId !== step.id &&
+                    !step.pending_delete &&
+                    "ring-2 ring-slate-400 rounded-md",
+                )}
+                draggable={!step.pending_delete}
+                onDragStart={(e) => handleStepDragStart(e, step.id)}
+                onDragOver={(e) =>
+                  !step.pending_delete && handleStepDragOver(e, step.id)
+                }
+                onDrop={(e) =>
+                  !step.pending_delete && handleStepDrop(e, step.id)
+                }
+                onDragEnd={handleStepDragEnd}
+              >
                 {editingStepId === step.id ? (
                   <input
                     autoFocus
@@ -738,7 +817,7 @@ export function FormBuilder({ form, products, userRole }: FormBuilderProps) {
                         : "bg-white text-slate-600 border-slate-300 hover:bg-slate-50 dark:bg-slate-800 dark:text-slate-300 dark:border-slate-600 dark:hover:bg-slate-700",
                     )}
                   >
-                    {step.title}
+                    {(stepNumberById.get(step.id) ?? "•") + ". " + step.title}
                   </button>
                 )}
                 {!step.pending_delete &&
@@ -786,6 +865,7 @@ export function FormBuilder({ form, products, userRole }: FormBuilderProps) {
           {activeView === "welcome" ? (
             <WelcomePageEditor
               welcomePage={welcomePage}
+              stepCount={visibleSteps.length}
               onChange={handleWelcomePageChange}
               onStartButtonStyleChange={updateStartButtonStyle}
             />
@@ -1199,12 +1279,14 @@ export function FormBuilder({ form, products, userRole }: FormBuilderProps) {
 
 interface WelcomePageEditorProps {
   welcomePage: WelcomePage;
+  stepCount: number;
   onChange: (updated: WelcomePage) => void;
   onStartButtonStyleChange: (style: ElementColorStyle | undefined) => void;
 }
 
 function WelcomePageEditor({
   welcomePage: wp,
+  stepCount,
   onChange,
   onStartButtonStyleChange,
 }: WelcomePageEditorProps) {
@@ -1378,6 +1460,9 @@ function WelcomePageEditor({
           placeholder="Write a welcome message for your respondents…"
           minHeight={120}
         />
+        <p className="text-xs text-slate-400 mt-1.5">
+          ({stepCount} {stepCount === 1 ? "step" : "steps"})
+        </p>
         <p className="text-xs text-slate-400 mt-1.5">
           This text is displayed to respondents before they start the form.
         </p>

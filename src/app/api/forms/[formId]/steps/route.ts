@@ -58,19 +58,75 @@ export async function PUT(request: Request, { params }: Params) {
   const supabase = createServiceRoleClient();
   const body = await request.json(); // { id, title?, step_order?, pending_delete? }
 
+  const { data: current } = await supabase
+    .from("form_steps")
+    .select("*")
+    .eq("id", body.id)
+    .eq("form_id", formId)
+    .single();
+
+  if (!current)
+    return NextResponse.json({ error: "Step not found" }, { status: 404 });
+
   const updates: Record<string, unknown> = {};
   if (body.title !== undefined) updates.title = body.title;
   if (body.step_order !== undefined) updates.step_order = body.step_order;
   if (body.pending_delete !== undefined)
     updates.pending_delete = body.pending_delete;
 
-  const { data, error } = await supabase
-    .from("form_steps")
-    .update(updates)
-    .eq("id", body.id)
-    .eq("form_id", formId)
-    .select()
-    .single();
+  let data = null;
+  let error = null;
+
+  if (current.is_draft) {
+    const result = await supabase
+      .from("form_steps")
+      .update(updates)
+      .eq("id", current.id)
+      .eq("form_id", formId)
+      .select()
+      .single();
+    data = result.data;
+    error = result.error;
+  } else {
+    const { data: existingDraft } = await supabase
+      .from("form_steps")
+      .select("id")
+      .eq("form_id", formId)
+      .eq("draft_parent_id", current.id)
+      .eq("is_draft", true)
+      .maybeSingle();
+
+    if (existingDraft) {
+      const result = await supabase
+        .from("form_steps")
+        .update(updates)
+        .eq("id", existingDraft.id)
+        .eq("form_id", formId)
+        .select()
+        .single();
+      data = result.data;
+      error = result.error;
+    } else {
+      const baseData = { ...current } as Record<string, unknown>;
+      delete baseData.id;
+      delete baseData.is_draft;
+      delete baseData.draft_parent_id;
+      delete baseData.created_at;
+
+      const result = await supabase
+        .from("form_steps")
+        .insert({
+          ...baseData,
+          ...updates,
+          is_draft: true,
+          draft_parent_id: current.id,
+        })
+        .select()
+        .single();
+      data = result.data;
+      error = result.error;
+    }
+  }
 
   if (error)
     return NextResponse.json({ error: error.message }, { status: 500 });
@@ -131,11 +187,41 @@ export async function DELETE(request: Request, { params }: Params) {
 
     return NextResponse.json({ deleted: true });
   } else {
-    // Published step — mark pending_delete
-    await supabase
-      .from("form_steps")
-      .update({ pending_delete: true })
-      .eq("id", stepId);
+    // Published step (or edit-draft) — mark a draft shadow as pending_delete
+    if (current.is_draft && current.draft_parent_id) {
+      await supabase
+        .from("form_steps")
+        .update({ pending_delete: true })
+        .eq("id", current.id);
+    } else {
+      const { data: existingDraft } = await supabase
+        .from("form_steps")
+        .select("id")
+        .eq("form_id", formId)
+        .eq("draft_parent_id", current.id)
+        .eq("is_draft", true)
+        .maybeSingle();
+
+      if (existingDraft) {
+        await supabase
+          .from("form_steps")
+          .update({ pending_delete: true })
+          .eq("id", existingDraft.id);
+      } else {
+        const baseData = { ...current } as Record<string, unknown>;
+        delete baseData.id;
+        delete baseData.is_draft;
+        delete baseData.draft_parent_id;
+        delete baseData.created_at;
+
+        await supabase.from("form_steps").insert({
+          ...baseData,
+          is_draft: true,
+          draft_parent_id: current.id,
+          pending_delete: true,
+        });
+      }
+    }
 
     await trackFormActivity({
       formId,

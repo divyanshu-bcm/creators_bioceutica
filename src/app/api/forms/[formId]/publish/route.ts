@@ -43,14 +43,11 @@ export async function POST(request: Request, { params }: Params) {
   for (const draft of draftFields ?? []) {
     if (draft.draft_parent_id) {
       // Edit-draft → copy content into the published parent row, delete draft
-      // eslint-disable-next-line @typescript-eslint/no-unused-vars
-      const {
-        id: _id,
-        is_draft: _d,
-        draft_parent_id: _dp,
-        created_at: _ca,
-        ...content
-      } = draft;
+      const content = { ...draft } as Record<string, unknown>;
+      delete content.id;
+      delete content.is_draft;
+      delete content.draft_parent_id;
+      delete content.created_at;
       await supabase
         .from("form_fields")
         .update({ ...content, pending_delete: false })
@@ -72,12 +69,36 @@ export async function POST(request: Request, { params }: Params) {
     .eq("form_id", formId)
     .eq("pending_delete", true);
 
-  // ── 3. Promote draft steps (new steps only — renames are immediate) ───────
-  await supabase
+  // ── 3. Promote/apply draft steps ─────────────────────────────────────────
+  const { data: draftSteps } = await supabase
     .from("form_steps")
-    .update({ is_draft: false })
+    .select("*")
     .eq("form_id", formId)
     .eq("is_draft", true);
+
+  for (const draftStep of draftSteps ?? []) {
+    if (draftStep.draft_parent_id) {
+      // Edit-draft step → copy content into parent, then delete draft
+      const content = { ...draftStep } as Record<string, unknown>;
+      delete content.id;
+      delete content.is_draft;
+      delete content.draft_parent_id;
+      delete content.created_at;
+
+      await supabase
+        .from("form_steps")
+        .update(content)
+        .eq("id", draftStep.draft_parent_id);
+
+      await supabase.from("form_steps").delete().eq("id", draftStep.id);
+    } else {
+      // New draft step → promote to published
+      await supabase
+        .from("form_steps")
+        .update({ is_draft: false })
+        .eq("id", draftStep.id);
+    }
+  }
 
   // ── 4. Hard-delete pending_delete steps (and their fields) ───────────────
   const { data: pendingSteps } = await supabase
