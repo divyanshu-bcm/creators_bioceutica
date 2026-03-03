@@ -10,6 +10,7 @@ import {
   AlignRight,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { sanitizeRichTextHtml } from "@/lib/rich-text";
 
 // Ordered list of available font sizes (px)
 const FONT_SIZES = [10, 12, 14, 16, 18, 20, 24, 28, 32, 36, 48];
@@ -57,9 +58,10 @@ export function RichTextEditor({
   // ── Initialise innerHTML exactly once on mount ────────────────────────────
   useEffect(() => {
     if (editorRef.current) {
-      editorRef.current.innerHTML = value ?? "";
-      lastEmittedRef.current = value ?? "";
-      checkEmpty(value ?? "");
+      const safeHtml = sanitizeRichTextHtml(value ?? "");
+      editorRef.current.innerHTML = safeHtml;
+      lastEmittedRef.current = safeHtml;
+      checkEmpty(safeHtml);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
@@ -68,9 +70,10 @@ export function RichTextEditor({
   useEffect(() => {
     if (!editorRef.current) return;
     if (value !== lastEmittedRef.current) {
-      editorRef.current.innerHTML = value ?? "";
-      lastEmittedRef.current = value ?? "";
-      checkEmpty(value ?? "");
+      const safeHtml = sanitizeRichTextHtml(value ?? "");
+      editorRef.current.innerHTML = safeHtml;
+      lastEmittedRef.current = safeHtml;
+      checkEmpty(safeHtml);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [value]);
@@ -84,7 +87,8 @@ export function RichTextEditor({
   // ── Emit change upward ────────────────────────────────────────────────────
   function emitChange() {
     if (!editorRef.current) return;
-    const html = editorRef.current.innerHTML;
+    const html = sanitizeRichTextHtml(editorRef.current.innerHTML);
+    editorRef.current.innerHTML = html;
     lastEmittedRef.current = html;
     checkEmpty(html);
     const stripped = html.replace(/<br\s*\/?>/gi, "").trim();

@@ -25,6 +25,7 @@ import {
 } from "@/components/ui/select";
 import { Copyright } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { sanitizeRichTextHtml } from "@/lib/rich-text";
 
 interface FormRendererProps {
   form: FormFull;
@@ -74,6 +75,7 @@ export function FormRenderer({ form, previewMode = false }: FormRendererProps) {
   const [submitted, setSubmitted] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState("");
+  const sanitizedWelcomeHtml = sanitizeRichTextHtml(wp?.text ?? "");
 
   // Restore from sessionStorage on mount
   useEffect(() => {
@@ -276,11 +278,11 @@ export function FormRenderer({ form, previewMode = false }: FormRendererProps) {
                 </div>
 
                 {/* Welcome text */}
-                {wp.text && (
+                {sanitizedWelcomeHtml && (
                   <div
                     className="text-slate-600 leading-relaxed **:max-w-full"
                     style={toCssStyle(wp.ui_styles?.welcome_text)}
-                    dangerouslySetInnerHTML={{ __html: wp.text }}
+                    dangerouslySetInnerHTML={{ __html: sanitizedWelcomeHtml }}
                   />
                 )}
 
@@ -743,11 +745,13 @@ function FieldRenderer({ field, value, onChange, error }: FieldRendererProps) {
   if (field.field_type === "paragraph") {
     if (!field.label) return null;
     const paragraphStyle = toCssStyle(getFieldStyle(field));
+    const safeHtml = sanitizeRichTextHtml(field.label);
+    if (!safeHtml) return null;
     return (
       <div
         className="text-sm leading-relaxed text-slate-700 **:max-w-full"
         style={paragraphStyle}
-        dangerouslySetInnerHTML={{ __html: field.label }}
+        dangerouslySetInnerHTML={{ __html: safeHtml }}
       />
     );
   }

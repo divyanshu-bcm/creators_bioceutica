@@ -44,6 +44,7 @@ import {
   Star,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { richTextToPlainText } from "@/lib/rich-text";
 
 function getFieldAppearanceStyle(
   field: FormField,
@@ -222,6 +223,9 @@ export function FieldCard({
   const isPredefinedGroup =
     field.field_type === "name_group" || field.field_type === "address_group";
   const isGroupLike = isGroup || isPredefinedGroup;
+  const paragraphPreview = isParagraph
+    ? richTextToPlainText(field.label ?? "")
+    : "";
   const [editing, setEditing] = useState(false);
   const [predefinedTab, setPredefinedTab] = useState("fields");
   const [localField, setLocalField] = useState<FormField>(field);
@@ -301,11 +305,11 @@ export function FieldCard({
             </span>
           ) : isParagraph ? (
             <span className="text-sm font-medium text-slate-600 dark:text-slate-400 truncate block">
-              {field.label ? (
-                field.label.length > 60 ? (
-                  field.label.slice(0, 60) + "…"
+              {paragraphPreview ? (
+                paragraphPreview.length > 60 ? (
+                  paragraphPreview.slice(0, 60) + "…"
                 ) : (
-                  field.label
+                  paragraphPreview
                 )
               ) : (
                 <span className="italic">Empty paragraph</span>

@@ -17,6 +17,7 @@ import {
   Clapperboard,
   MessageSquare,
   Package,
+  ChartPie,
 } from "lucide-react";
 
 interface SidebarProps {
@@ -64,6 +65,7 @@ export function Sidebar({ userRole, userName, userEmail }: SidebarProps) {
     ...(userRole === "admin"
       ? [{ label: "Users", href: "/dashboard/users", icon: Users }]
       : []),
+    { label: "Analytics", href: "/dashboard/analytics", icon: ChartPie },
   ];
 
   // Before mount, render expanded to avoid layout shift
