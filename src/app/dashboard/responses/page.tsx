@@ -35,9 +35,9 @@ export default async function ResponsesFormsPage() {
   );
 
   return (
-    <div>
-      <div className="mb-8">
-        <h1 className="text-2xl font-bold text-slate-900 dark:text-slate-100">
+    <div className="space-y-6">
+      <div className="mb-1">
+        <h1 className="text-xl sm:text-2xl font-bold text-slate-900 dark:text-slate-100">
           Responses
         </h1>
         <p className="text-slate-500 dark:text-slate-400 text-sm mt-1">
@@ -54,10 +54,10 @@ export default async function ResponsesFormsPage() {
           </p>
         </div>
       ) : (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">
           {forms.map((form: Form) => (
             <Card key={form.id} className="hover:shadow-md transition-shadow">
-              <CardContent className="p-5">
+              <CardContent className="p-4 sm:p-5">
                 <div className="flex items-start justify-between mb-3">
                   <h2 className="font-semibold text-slate-900 dark:text-slate-100 leading-tight line-clamp-2 flex-1 mr-2">
                     {form.title}

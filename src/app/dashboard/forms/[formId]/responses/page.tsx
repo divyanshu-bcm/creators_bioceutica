@@ -55,21 +55,23 @@ export default async function ResponsesPage({ params }: Props) {
 
   return (
     <div>
-      <div className="flex items-center gap-3 mb-6">
-        <Button asChild variant="ghost" size="icon">
-          <Link href={`/dashboard/forms/${formId}`}>
-            <ArrowLeft className="h-4 w-4" />
-          </Link>
-        </Button>
-        <div>
-          <h1 className="text-2xl font-bold text-slate-900 dark:text-slate-100">
-            {form.title}
-          </h1>
-          <p className="text-slate-500 dark:text-slate-400 text-sm">
-            {rows.length} response{rows.length !== 1 ? "s" : ""}
-          </p>
+      <div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+        <div className="flex items-start gap-3 min-w-0">
+          <Button asChild variant="ghost" size="icon" className="shrink-0">
+            <Link href={`/dashboard/forms/${formId}`}>
+              <ArrowLeft className="h-4 w-4" />
+            </Link>
+          </Button>
+          <div className="min-w-0">
+            <h1 className="text-xl sm:text-2xl font-bold text-slate-900 dark:text-slate-100 wrap-break-word">
+              {form.title}
+            </h1>
+            <p className="text-slate-500 dark:text-slate-400 text-sm mt-1">
+              {rows.length} response{rows.length !== 1 ? "s" : ""}
+            </p>
+          </div>
         </div>
-        <div className="ml-auto flex items-center gap-2">
+        <div className="flex items-center gap-2 self-start">
           <Badge variant={form.is_published ? "success" : "secondary"}>
             {form.is_published ? "Published" : "Draft"}
           </Badge>
@@ -91,49 +93,91 @@ export default async function ResponsesPage({ params }: Props) {
           </p>
         </div>
       ) : (
-        <div className="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 overflow-hidden">
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead className="w-40">Submitted At</TableHead>
-                {responseFields.map((f) => (
-                  <TableHead key={f.id}>
-                    {f.label || `Field (${f.field_type})`}
-                  </TableHead>
-                ))}
-                <TableHead className="w-44">Action</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {rows.map((row) => (
-                <TableRow key={row.id}>
-                  <TableCell className="text-xs text-slate-500 dark:text-slate-400 whitespace-nowrap">
-                    {new Date(row.submitted_at).toLocaleString("en-US", {
-                      month: "short",
-                      day: "numeric",
-                      year: "numeric",
-                      hour: "2-digit",
-                      minute: "2-digit",
-                    })}
-                  </TableCell>
+        <div className="space-y-3">
+          <div className="md:hidden space-y-3">
+            {rows.map((row) => (
+              <div
+                key={row.id}
+                className="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 p-4 space-y-3"
+              >
+                <p className="text-xs text-slate-500 dark:text-slate-400">
+                  {new Date(row.submitted_at).toLocaleString("en-US", {
+                    month: "short",
+                    day: "numeric",
+                    year: "numeric",
+                    hour: "2-digit",
+                    minute: "2-digit",
+                  })}
+                </p>
+                <div className="space-y-2">
                   {responseFields.map((f) => (
-                    <TableCell key={f.id} className="max-w-xs truncate">
-                      {formatValue((row.data as Record<string, unknown>)[f.id])}
-                    </TableCell>
+                    <div key={f.id}>
+                      <p className="text-[11px] uppercase tracking-wide text-slate-500 dark:text-slate-400">
+                        {f.label || `Field (${f.field_type})`}
+                      </p>
+                      <p className="text-sm text-slate-900 dark:text-slate-100 wrap-break-word">
+                        {formatValue(
+                          (row.data as Record<string, unknown>)[f.id],
+                        )}
+                      </p>
+                    </div>
                   ))}
-                  <TableCell>
-                    <Button asChild variant="outline" size="sm">
-                      <Link
-                        href={`/dashboard/forms/${formId}/responses/${row.id}`}
-                      >
-                        View full Response
-                      </Link>
-                    </Button>
-                  </TableCell>
+                </div>
+                <Button asChild variant="outline" size="sm" className="w-full">
+                  <Link href={`/dashboard/forms/${formId}/responses/${row.id}`}>
+                    View full Response
+                  </Link>
+                </Button>
+              </div>
+            ))}
+          </div>
+
+          <div className="hidden md:block bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 overflow-hidden">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead className="w-40">Submitted At</TableHead>
+                  {responseFields.map((f) => (
+                    <TableHead key={f.id}>
+                      {f.label || `Field (${f.field_type})`}
+                    </TableHead>
+                  ))}
+                  <TableHead className="w-44">Action</TableHead>
                 </TableRow>
-              ))}
-            </TableBody>
-          </Table>
+              </TableHeader>
+              <TableBody>
+                {rows.map((row) => (
+                  <TableRow key={row.id}>
+                    <TableCell className="text-xs text-slate-500 dark:text-slate-400 whitespace-nowrap">
+                      {new Date(row.submitted_at).toLocaleString("en-US", {
+                        month: "short",
+                        day: "numeric",
+                        year: "numeric",
+                        hour: "2-digit",
+                        minute: "2-digit",
+                      })}
+                    </TableCell>
+                    {responseFields.map((f) => (
+                      <TableCell key={f.id} className="max-w-xs truncate">
+                        {formatValue(
+                          (row.data as Record<string, unknown>)[f.id],
+                        )}
+                      </TableCell>
+                    ))}
+                    <TableCell>
+                      <Button asChild variant="outline" size="sm">
+                        <Link
+                          href={`/dashboard/forms/${formId}/responses/${row.id}`}
+                        >
+                          View full Response
+                        </Link>
+                      </Button>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </div>
         </div>
       )}
     </div>

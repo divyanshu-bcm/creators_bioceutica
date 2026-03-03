@@ -247,9 +247,9 @@ export function FormRenderer({ form, previewMode = false }: FormRendererProps) {
     return (
       <div className="min-h-screen bg-slate-100 flex flex-col">
         <div className="flex-1">
-          <div className="max-w-xl mx-auto px-4 py-12">
+          <div className="max-w-xl mx-auto px-3 sm:px-4 py-8 sm:py-12">
             <div className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
-              <div className="p-8 sm:p-10 space-y-8">
+              <div className="p-5 sm:p-10 space-y-6 sm:space-y-8">
                 {/* Logo */}
                 {wp.logo_url && (
                   <div className="flex justify-center">
@@ -263,7 +263,7 @@ export function FormRenderer({ form, previewMode = false }: FormRendererProps) {
 
                 {/* Form title */}
                 <div className="text-center">
-                  <h1 className="text-3xl font-bold text-slate-900">
+                  <h1 className="text-2xl sm:text-3xl font-bold text-slate-900 wrap-break-word">
                     {form.title}
                   </h1>
                 </div>
@@ -325,7 +325,7 @@ export function FormRenderer({ form, previewMode = false }: FormRendererProps) {
 
                 {/* Start button */}
                 <Button
-                  className="w-full h-14 text-base font-semibold tracking-wide"
+                  className="w-full h-12 sm:h-14 text-base font-semibold tracking-wide"
                   onClick={handleWelcomeContinue}
                   style={toCssStyle(wp.ui_styles?.start_button)}
                 >
@@ -380,10 +380,12 @@ export function FormRenderer({ form, previewMode = false }: FormRendererProps) {
   return (
     <div className="min-h-screen bg-slate-100 flex flex-col">
       <div className="flex-1">
-        <div className="max-w-xl mx-auto px-4 py-10">
+        <div className="max-w-xl mx-auto px-3 sm:px-4 py-6 sm:py-10">
           {/* Form header */}
           <div className="mb-6 text-center">
-            <h1 className="text-3xl font-bold text-slate-900">{form.title}</h1>
+            <h1 className="text-2xl sm:text-3xl font-bold text-slate-900 wrap-break-word">
+              {form.title}
+            </h1>
             {form.description && (
               <p className="text-slate-500 mt-2">{form.description}</p>
             )}
@@ -393,7 +395,9 @@ export function FormRenderer({ form, previewMode = false }: FormRendererProps) {
           {totalSteps > 1 && (
             <div className="mb-6">
               <div className="flex items-center justify-between text-sm text-slate-500 mb-3">
-                <span className="font-medium">{step.title}</span>
+                <span className="font-medium truncate max-w-[72%]">
+                  {step.title}
+                </span>
                 <span>
                   {currentStep + 1} / {totalSteps}
                 </span>
@@ -447,7 +451,7 @@ export function FormRenderer({ form, previewMode = false }: FormRendererProps) {
 
           {/* Fields card */}
           <div className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
-            <div className="p-6 sm:p-8 space-y-6">
+            <div className="p-4 sm:p-8 space-y-5 sm:space-y-6">
               {step.fields.map((field) => (
                 <FieldRenderer
                   key={field.id}
@@ -466,13 +470,14 @@ export function FormRenderer({ form, previewMode = false }: FormRendererProps) {
             </div>
 
             {/* Navigation */}
-            <div className="px-6 sm:px-8 pb-6 sm:pb-8 flex items-center justify-between gap-3">
+            <div className="px-4 sm:px-8 pb-4 sm:pb-8 flex flex-col-reverse sm:flex-row sm:items-center sm:justify-between gap-2 sm:gap-3">
               {currentStep > 0 ? (
                 <Button
                   variant="outline"
                   onClick={handleBack}
                   style={toCssStyle(stepButtonStyles?.prev_button)}
                   className={cn(
+                    "w-full sm:w-auto",
                     stepButtonStyles?.prev_button?.border_color && "border",
                   )}
                 >
@@ -487,19 +492,20 @@ export function FormRenderer({ form, previewMode = false }: FormRendererProps) {
                   }}
                   style={toCssStyle(stepButtonStyles?.prev_button)}
                   className={cn(
+                    "w-full sm:w-auto",
                     stepButtonStyles?.prev_button?.border_color && "border",
                   )}
                 >
                   ← Back
                 </Button>
               ) : (
-                <div />
+                <div className="hidden sm:block" />
               )}
               {currentStep < totalSteps - 1 ? (
                 <Button
                   onClick={handleNext}
                   className={cn(
-                    "min-w-25",
+                    "w-full sm:w-auto sm:min-w-25",
                     stepButtonStyles?.next_button?.border_color && "border",
                   )}
                   style={toCssStyle(stepButtonStyles?.next_button)}
@@ -511,7 +517,7 @@ export function FormRenderer({ form, previewMode = false }: FormRendererProps) {
                   onClick={handleSubmit}
                   disabled={submitting}
                   className={cn(
-                    "min-w-25",
+                    "w-full sm:w-auto sm:min-w-25",
                     stepButtonStyles?.submit_button?.border_color && "border",
                   )}
                   style={toCssStyle(stepButtonStyles?.submit_button)}
@@ -997,12 +1003,12 @@ function FieldRenderer({ field, value, onChange, error }: FieldRendererProps) {
       return (
         <div className="space-y-4">
           {label}
-          <div className="flex w-full items-stretch justify-between gap-3">
+          <div className="flex flex-col sm:flex-row w-full items-stretch justify-between gap-3">
             <button
               type="button"
               onClick={() => onChange(trueLabel)}
               className={cn(
-                "w-[40%] rounded-lg border-2 px-4 py-2 text-center text-sm font-medium transition-all",
+                "w-full sm:w-[40%] rounded-lg border-2 px-4 py-2 text-center text-sm font-medium transition-all",
                 value === trueLabel
                   ? "border-emerald-500 bg-emerald-50 text-emerald-700"
                   : "border-slate-200 bg-white text-slate-700 hover:border-slate-300",
@@ -1015,7 +1021,7 @@ function FieldRenderer({ field, value, onChange, error }: FieldRendererProps) {
               type="button"
               onClick={() => onChange(falseLabel)}
               className={cn(
-                "w-[40%] rounded-lg border-2 px-4 py-2 text-center text-sm font-medium transition-all",
+                "w-full sm:w-[40%] rounded-lg border-2 px-4 py-2 text-center text-sm font-medium transition-all",
                 value === falseLabel
                   ? "border-red-400 bg-red-50 text-red-700"
                   : "border-slate-200 bg-white text-slate-700 hover:border-slate-300",

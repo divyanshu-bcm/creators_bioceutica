@@ -74,24 +74,24 @@ export default async function ResponseDetailPage({ params }: Props) {
 
   return (
     <div>
-      <div className="flex items-center gap-3 mb-6">
-        <Button asChild variant="ghost" size="icon">
+      <div className="flex items-start gap-3 mb-6 min-w-0">
+        <Button asChild variant="ghost" size="icon" className="shrink-0">
           <Link href={`/dashboard/forms/${formId}/responses`}>
             <ArrowLeft className="h-4 w-4" />
           </Link>
         </Button>
-        <div>
-          <h1 className="text-2xl font-bold text-slate-900 dark:text-slate-100">
+        <div className="min-w-0">
+          <h1 className="text-xl sm:text-2xl font-bold text-slate-900 dark:text-slate-100">
             Response Detail
           </h1>
-          <p className="text-slate-500 dark:text-slate-400 text-sm">
+          <p className="text-slate-500 dark:text-slate-400 text-sm wrap-break-word mt-1">
             {form.title}
           </p>
         </div>
       </div>
 
       <Card className="mb-4">
-        <CardContent className="p-5">
+        <CardContent className="p-4 sm:p-5">
           <p className="text-xs uppercase tracking-wide text-slate-500 dark:text-slate-400 mb-1">
             Submitted At
           </p>
@@ -139,7 +139,7 @@ export default async function ResponseDetailPage({ params }: Props) {
 
                 return (
                   <Card key={field.id}>
-                    <CardContent className="p-5">
+                    <CardContent className="p-4 sm:p-5">
                       <p className="text-xs uppercase tracking-wide text-slate-500 dark:text-slate-400 mb-2">
                         {field.label || `Field (${field.field_type})`}
                       </p>
@@ -151,8 +151,11 @@ export default async function ResponseDetailPage({ params }: Props) {
                                 sf.enabled !== false && sf.label.trim() !== "",
                             )
                             .map((sf) => (
-                              <div key={sf.id} className="flex gap-2 text-sm">
-                                <span className="text-slate-500 dark:text-slate-400 shrink-0 min-w-24">
+                              <div
+                                key={sf.id}
+                                className="flex flex-col gap-0.5 sm:flex-row sm:items-start sm:gap-2 text-sm"
+                              >
+                                <span className="text-slate-500 dark:text-slate-400 shrink-0 sm:min-w-24">
                                   {sf.label}:
                                 </span>
                                 <span className="text-slate-900 dark:text-slate-100 break-all">
@@ -185,7 +188,7 @@ export default async function ResponseDetailPage({ params }: Props) {
           const rawVal = responseData[field.id];
           return (
             <Card key={field.id}>
-              <CardContent className="p-5">
+              <CardContent className="p-4 sm:p-5">
                 <p className="text-xs uppercase tracking-wide text-slate-500 dark:text-slate-400 mb-2">
                   {field.label || `Field (${field.field_type})`}
                 </p>
