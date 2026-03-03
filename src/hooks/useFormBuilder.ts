@@ -113,7 +113,8 @@ export function useFormBuilder(initial: BuilderState) {
         fieldType === "image"
           ? ""
           : isPredefinedGroup
-            ? PREDEFINED_TEMPLATES[fieldType as PredefinedGroupType].defaultLabel
+            ? PREDEFINED_TEMPLATES[fieldType as PredefinedGroupType]
+                .defaultLabel
             : `New ${fieldType} field`;
 
       const defaultValidation =
@@ -338,6 +339,77 @@ export function useFormBuilder(initial: BuilderState) {
     [],
   );
 
+  const duplicateField = useCallback(
+    async (formId: string, stepId: string, fieldId: string) => {
+      const step = state.steps.find((s) => s.id === stepId);
+      if (!step) return;
+      const source = step.fields.find((f) => f.id === fieldId);
+      if (!source) return;
+
+      const maxOrder = Math.max(...step.fields.map((f) => f.field_order), -1);
+
+      // Create new field with same content
+      const res = await fetch(`/api/forms/${formId}/fields`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          step_id: stepId,
+          field_type: source.field_type,
+          label: source.label ? `${source.label} (copy)` : null,
+          placeholder: source.placeholder,
+          helper_text: source.helper_text,
+          is_required: source.is_required,
+          options: source.options ? [...source.options] : null,
+          image_url: source.image_url,
+          image_alt: source.image_alt,
+          validation: source.validation
+            ? JSON.parse(JSON.stringify(source.validation))
+            : null,
+          field_order: maxOrder + 1,
+        }),
+      });
+      if (!res.ok) return;
+      const newField: FormField = await res.json();
+
+      // Insert newField right after the source in the array, then reorder
+      setState((s) => ({
+        ...s,
+        steps: s.steps.map((st) => {
+          if (st.id !== stepId) return st;
+          const srcIdx = st.fields.findIndex((f) => f.id === fieldId);
+          const inserted = [
+            ...st.fields.slice(0, srcIdx + 1),
+            newField,
+            ...st.fields.slice(srcIdx + 1),
+          ];
+          const reordered = inserted.map((f, i) => ({ ...f, field_order: i }));
+          return { ...st, fields: reordered };
+        }),
+      }));
+
+      // Persist new orders for all fields in the step (except the brand-new one which was already saved with a temp order)
+      const updatedStep = state.steps.find((s) => s.id === stepId);
+      if (updatedStep) {
+        const srcIdx = updatedStep.fields.findIndex((f) => f.id === fieldId);
+        const inserted = [
+          ...updatedStep.fields.slice(0, srcIdx + 1),
+          newField,
+          ...updatedStep.fields.slice(srcIdx + 1),
+        ];
+        await Promise.all(
+          inserted.map((f, i) =>
+            fetch(`/api/forms/${formId}/fields`, {
+              method: "PUT",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ id: f.id, field_order: i }),
+            }),
+          ),
+        );
+      }
+    },
+    [state.steps],
+  );
+
   const restoreField = useCallback(
     async (formId: string, stepId: string, fieldId: string) => {
       const res = await fetch(`/api/forms/${formId}/fields`, {
@@ -388,6 +460,7 @@ export function useFormBuilder(initial: BuilderState) {
     addField,
     updateField,
     deleteField,
+    duplicateField,
     moveField,
     reorderFields,
     restoreField,

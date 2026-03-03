@@ -435,6 +435,12 @@ export function FormBuilder({ form, products, userRole }: FormBuilderProps) {
     if (isPublished) setHasUnpublishedChanges(true);
   }
 
+  function handleDuplicateField(fieldId: string) {
+    if (!activeStep) return;
+    builder.duplicateField(form.id, activeStep.id, fieldId);
+    if (isPublished) setHasUnpublishedChanges(true);
+  }
+
   function handleRestoreField(fieldId: string) {
     if (!activeStep) return;
     builder.restoreField(form.id, activeStep.id, fieldId);
@@ -818,6 +824,7 @@ export function FormBuilder({ form, products, userRole }: FormBuilderProps) {
                     isLast={idx === activeStep.fields.length - 1}
                     onUpdate={handleUpdateField}
                     onDelete={handleDeleteField}
+                    onDuplicate={handleDuplicateField}
                     onRestore={handleRestoreField}
                     onMove={handleMoveField}
                     onDragHandlePointerDown={() => {

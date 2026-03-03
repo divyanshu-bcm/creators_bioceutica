@@ -1,7 +1,13 @@
 "use client";
 
 import { useState, useRef, useEffect } from "react";
-import type { FormField, FieldType, ElementColorStyle, SubField, LabelAlign } from "@/lib/types";
+import type {
+  FormField,
+  FieldType,
+  ElementColorStyle,
+  SubField,
+  LabelAlign,
+} from "@/lib/types";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -24,6 +30,7 @@ import {
   ChevronDown,
   Trash2,
   Pencil,
+  Copy,
   X,
   Check,
   GripVertical,
@@ -163,6 +170,7 @@ interface FieldCardProps {
   isLast: boolean;
   onUpdate: (fieldId: string, updates: Partial<FormField>) => void;
   onDelete: (fieldId: string) => void;
+  onDuplicate: (fieldId: string) => void;
   onRestore: (fieldId: string) => void;
   onMove: (fieldId: string, direction: "up" | "down") => void;
   onDragHandlePointerDown: () => void;
@@ -176,6 +184,7 @@ export function FieldCard({
   isLast,
   onUpdate,
   onDelete,
+  onDuplicate,
   onRestore,
   onMove,
   onDragHandlePointerDown,
@@ -354,14 +363,25 @@ export function FieldCard({
                 size="icon"
                 className="h-7 w-7"
                 onClick={() => setEditing((v) => !v)}
+                title="Edit field"
               >
                 <Pencil className="h-3 w-3" />
               </Button>
               <Button
                 variant="ghost"
                 size="icon"
+                className="h-7 w-7"
+                onClick={() => onDuplicate(field.id)}
+                title="Duplicate field"
+              >
+                <Copy className="h-3 w-3" />
+              </Button>
+              <Button
+                variant="ghost"
+                size="icon"
                 className="h-7 w-7 text-red-500 hover:text-red-700"
                 onClick={() => onDelete(field.id)}
+                title="Delete field"
               >
                 <Trash2 className="h-3 w-3" />
               </Button>
@@ -556,7 +576,9 @@ export function FieldCard({
                     <Button
                       key={a}
                       type="button"
-                      variant={getLabelAlign(localField) === a ? "default" : "outline"}
+                      variant={
+                        getLabelAlign(localField) === a ? "default" : "outline"
+                      }
                       size="sm"
                       className="h-8 flex-1"
                       onClick={() =>
@@ -567,7 +589,9 @@ export function FieldCard({
                       }
                     >
                       {a === "left" && <AlignLeft className="h-3.5 w-3.5" />}
-                      {a === "center" && <AlignCenter className="h-3.5 w-3.5" />}
+                      {a === "center" && (
+                        <AlignCenter className="h-3.5 w-3.5" />
+                      )}
                       {a === "right" && <AlignRight className="h-3.5 w-3.5" />}
                     </Button>
                   ))}
@@ -639,7 +663,9 @@ export function FieldCard({
                     <Button
                       key={a}
                       type="button"
-                      variant={getLabelAlign(localField) === a ? "default" : "outline"}
+                      variant={
+                        getLabelAlign(localField) === a ? "default" : "outline"
+                      }
                       size="sm"
                       className="h-8 flex-1"
                       onClick={() =>
@@ -650,7 +676,9 @@ export function FieldCard({
                       }
                     >
                       {a === "left" && <AlignLeft className="h-3.5 w-3.5" />}
-                      {a === "center" && <AlignCenter className="h-3.5 w-3.5" />}
+                      {a === "center" && (
+                        <AlignCenter className="h-3.5 w-3.5" />
+                      )}
                       {a === "right" && <AlignRight className="h-3.5 w-3.5" />}
                     </Button>
                   ))}
@@ -660,7 +688,11 @@ export function FieldCard({
               <Separator />
 
               {/* Two-tab panel */}
-              <Tabs value={predefinedTab} onValueChange={setPredefinedTab} className="w-full">
+              <Tabs
+                value={predefinedTab}
+                onValueChange={setPredefinedTab}
+                className="w-full"
+              >
                 <TabsList className="w-full">
                   <TabsTrigger value="fields" className="flex-1 text-xs">
                     Fields
@@ -697,13 +729,21 @@ export function FieldCard({
                         className="h-4 w-4 rounded"
                       />
                       <span className="text-sm text-slate-800 dark:text-slate-200">
-                        {sf.label || <span className="italic text-slate-400">Unnamed sub-field</span>}
+                        {sf.label || (
+                          <span className="italic text-slate-400">
+                            Unnamed sub-field
+                          </span>
+                        )}
                       </span>
                       {sf.is_required && (
-                        <span className="text-xs text-red-500 ml-auto">required</span>
+                        <span className="text-xs text-red-500 ml-auto">
+                          required
+                        </span>
                       )}
                       {sf.input_type === "dropdown" && (
-                        <Badge variant="outline" className="text-xs ml-auto">Dropdown</Badge>
+                        <Badge variant="outline" className="text-xs ml-auto">
+                          Dropdown
+                        </Badge>
                       )}
                     </label>
                   ))}
@@ -737,7 +777,8 @@ export function FieldCard({
 
                 {/* ── Edit Fields tab: configure each enabled sub-field ── */}
                 <TabsContent value="edit" className="pt-3 space-y-4">
-                  {getSubFields(localField).filter((sf) => sf.enabled !== false).length === 0 && (
+                  {getSubFields(localField).filter((sf) => sf.enabled !== false)
+                    .length === 0 && (
                     <p className="text-xs text-slate-400 text-center py-4">
                       No fields enabled. Go to the Fields tab to enable some.
                     </p>
@@ -759,7 +800,9 @@ export function FieldCard({
                             size="icon"
                             className="h-6 w-6 text-red-500 hover:text-red-700 shrink-0 ml-2"
                             onClick={() => {
-                              const next = getSubFields(localField).filter((s) => s.id !== sf.id);
+                              const next = getSubFields(localField).filter(
+                                (s) => s.id !== sf.id,
+                              );
                               setLocalField((f) => ({
                                 ...f,
                                 validation: patchSubFields(f, next),
@@ -776,7 +819,9 @@ export function FieldCard({
                             value={sf.label}
                             onChange={(e) => {
                               const next = getSubFields(localField).map((s) =>
-                                s.id === sf.id ? { ...s, label: e.target.value } : s,
+                                s.id === sf.id
+                                  ? { ...s, label: e.target.value }
+                                  : s,
                               );
                               setLocalField((f) => ({
                                 ...f,
@@ -828,7 +873,10 @@ export function FieldCard({
                             }}
                             className="h-4 w-4 rounded"
                           />
-                          <Label htmlFor={`sf-req-${sf.id}`} className="text-xs font-normal cursor-pointer">
+                          <Label
+                            htmlFor={`sf-req-${sf.id}`}
+                            className="text-xs font-normal cursor-pointer"
+                          >
                             Required
                           </Label>
                         </div>
@@ -839,12 +887,19 @@ export function FieldCard({
                           <div className="flex gap-2">
                             <Button
                               type="button"
-                              variant={sf.input_type !== "dropdown" ? "default" : "outline"}
+                              variant={
+                                sf.input_type !== "dropdown"
+                                  ? "default"
+                                  : "outline"
+                              }
                               size="sm"
                               className="h-7 text-xs flex-1"
                               onClick={() => {
-                                const next = getSubFields(localField).map((s) =>
-                                  s.id === sf.id ? { ...s, input_type: "text" as const } : s,
+                                const next = getSubFields(localField).map(
+                                  (s) =>
+                                    s.id === sf.id
+                                      ? { ...s, input_type: "text" as const }
+                                      : s,
                                 );
                                 setLocalField((f) => ({
                                   ...f,
@@ -856,12 +911,22 @@ export function FieldCard({
                             </Button>
                             <Button
                               type="button"
-                              variant={sf.input_type === "dropdown" ? "default" : "outline"}
+                              variant={
+                                sf.input_type === "dropdown"
+                                  ? "default"
+                                  : "outline"
+                              }
                               size="sm"
                               className="h-7 text-xs flex-1"
                               onClick={() => {
-                                const next = getSubFields(localField).map((s) =>
-                                  s.id === sf.id ? { ...s, input_type: "dropdown" as const } : s,
+                                const next = getSubFields(localField).map(
+                                  (s) =>
+                                    s.id === sf.id
+                                      ? {
+                                          ...s,
+                                          input_type: "dropdown" as const,
+                                        }
+                                      : s,
                                 );
                                 setLocalField((f) => ({
                                   ...f,
@@ -879,7 +944,9 @@ export function FieldCard({
                           <div className="space-y-1">
                             <Label className="text-xs">
                               Options{" "}
-                              <span className="font-normal text-slate-500">(one per line)</span>
+                              <span className="font-normal text-slate-500">
+                                (one per line)
+                              </span>
                             </Label>
                             <Textarea
                               value={(sf.options ?? []).join("\n")}
@@ -888,8 +955,11 @@ export function FieldCard({
                                   .split("\n")
                                   .map((l) => l.trimEnd())
                                   .filter((l) => l.trim() !== "");
-                                const next = getSubFields(localField).map((s) =>
-                                  s.id === sf.id ? { ...s, options: opts } : s,
+                                const next = getSubFields(localField).map(
+                                  (s) =>
+                                    s.id === sf.id
+                                      ? { ...s, options: opts }
+                                      : s,
                                 );
                                 setLocalField((f) => ({
                                   ...f,
@@ -901,7 +971,8 @@ export function FieldCard({
                               className="text-sm font-mono resize-none"
                             />
                             <p className="text-xs text-slate-400">
-                              {(sf.options ?? []).length} option{(sf.options ?? []).length !== 1 ? "s" : ""}
+                              {(sf.options ?? []).length} option
+                              {(sf.options ?? []).length !== 1 ? "s" : ""}
                             </p>
                           </div>
                         )}
@@ -1106,7 +1177,9 @@ export function FieldCard({
                     <Button
                       key={a}
                       type="button"
-                      variant={getLabelAlign(localField) === a ? "default" : "outline"}
+                      variant={
+                        getLabelAlign(localField) === a ? "default" : "outline"
+                      }
                       size="sm"
                       className="h-8 flex-1"
                       onClick={() =>
@@ -1117,7 +1190,9 @@ export function FieldCard({
                       }
                     >
                       {a === "left" && <AlignLeft className="h-3.5 w-3.5" />}
-                      {a === "center" && <AlignCenter className="h-3.5 w-3.5" />}
+                      {a === "center" && (
+                        <AlignCenter className="h-3.5 w-3.5" />
+                      )}
                       {a === "right" && <AlignRight className="h-3.5 w-3.5" />}
                     </Button>
                   ))}
@@ -1164,9 +1239,8 @@ export function FieldCard({
                       )}
                     </Label>
                     {(localField.options ?? []).map((opt, i) => {
-                      const requiredOpts = (
-                        localField.validation?.required_options ?? []
-                      ) as string[];
+                      const requiredOpts = (localField.validation
+                        ?.required_options ?? []) as string[];
                       const isReqOpt = requiredOpts.includes(opt);
                       return (
                         <div key={i} className="flex gap-2">
@@ -1176,9 +1250,8 @@ export function FieldCard({
                               const opts = [...(localField.options ?? [])];
                               const oldVal = opts[i];
                               opts[i] = e.target.value;
-                              const rOpts = (
-                                localField.validation?.required_options ?? []
-                              ) as string[];
+                              const rOpts = (localField.validation
+                                ?.required_options ?? []) as string[];
                               const newRopts = rOpts.map((r) =>
                                 r === oldVal ? e.target.value : r,
                               );
@@ -1205,14 +1278,11 @@ export function FieldCard({
                               }
                               className={cn(
                                 "h-10 w-10",
-                                isReqOpt
-                                  ? "text-amber-500"
-                                  : "text-slate-300",
+                                isReqOpt ? "text-amber-500" : "text-slate-300",
                               )}
                               onClick={() => {
-                                const rOpts = (
-                                  localField.validation?.required_options ?? []
-                                ) as string[];
+                                const rOpts = (localField.validation
+                                  ?.required_options ?? []) as string[];
                                 const newRopts = isReqOpt
                                   ? rOpts.filter((r) => r !== opt)
                                   : [...rOpts, opt];
@@ -1236,12 +1306,11 @@ export function FieldCard({
                             size="icon"
                             className="h-10 w-10 text-red-500"
                             onClick={() => {
-                              const opts = (
-                                localField.options ?? []
-                              ).filter((_, j) => j !== i);
-                              const rOpts = (
-                                localField.validation?.required_options ?? []
-                              ) as string[];
+                              const opts = (localField.options ?? []).filter(
+                                (_, j) => j !== i,
+                              );
+                              const rOpts = (localField.validation
+                                ?.required_options ?? []) as string[];
                               const newRopts = rOpts.filter((r) => r !== opt);
                               setLocalField((f) => ({
                                 ...f,
@@ -1302,7 +1371,6 @@ export function FieldCard({
         </div>
       )}
 
-
       {/* Predefined group preview (non-editing mode) */}
       {!editing && isPredefinedGroup && (
         <div className="mt-3 space-y-2">
@@ -1332,7 +1400,8 @@ export function FieldCard({
                 </div>
               </div>
             ))}
-          {getSubFields(field).filter((sf) => sf.enabled !== false).length === 0 && (
+          {getSubFields(field).filter((sf) => sf.enabled !== false).length ===
+            0 && (
             <p className="text-xs text-slate-400 italic">No fields enabled</p>
           )}
         </div>
