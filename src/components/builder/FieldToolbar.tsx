@@ -18,6 +18,7 @@ import {
   User,
   MapPin,
   ToggleLeft,
+  Loader2,
 } from "lucide-react";
 import { Separator } from "@/components/ui/separator";
 
@@ -65,16 +66,25 @@ const FIELDS: { type: FieldType; label: string; icon: React.ReactNode }[] = [
   },
 ];
 
-const PREDEFINED_FIELDS: { type: FieldType; label: string; icon: React.ReactNode }[] = [
+const PREDEFINED_FIELDS: {
+  type: FieldType;
+  label: string;
+  icon: React.ReactNode;
+}[] = [
   { type: "name_group", label: "Name", icon: <User className="h-4 w-4" /> },
-  { type: "address_group", label: "Address", icon: <MapPin className="h-4 w-4" /> },
+  {
+    type: "address_group",
+    label: "Address",
+    icon: <MapPin className="h-4 w-4" />,
+  },
 ];
 
 interface FieldToolbarProps {
   onAdd: (type: FieldType) => void;
+  addingType?: FieldType | null;
 }
 
-export function FieldToolbar({ onAdd }: FieldToolbarProps) {
+export function FieldToolbar({ onAdd, addingType = null }: FieldToolbarProps) {
   return (
     <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl p-4">
       <p className="text-xs font-semibold text-slate-400 dark:text-slate-500 uppercase tracking-wide mb-3">
@@ -88,8 +98,13 @@ export function FieldToolbar({ onAdd }: FieldToolbarProps) {
             size="sm"
             className="justify-start gap-2 text-xs"
             onClick={() => onAdd(type)}
+            disabled={addingType !== null}
           >
-            {icon}
+            {addingType === type ? (
+              <Loader2 className="h-4 w-4 animate-spin" />
+            ) : (
+              icon
+            )}
             {label}
           </Button>
         ))}
@@ -108,8 +123,13 @@ export function FieldToolbar({ onAdd }: FieldToolbarProps) {
             size="sm"
             className="justify-start gap-2 text-xs border-dashed"
             onClick={() => onAdd(type)}
+            disabled={addingType !== null}
           >
-            {icon}
+            {addingType === type ? (
+              <Loader2 className="h-4 w-4 animate-spin" />
+            ) : (
+              icon
+            )}
             {label}
           </Button>
         ))}

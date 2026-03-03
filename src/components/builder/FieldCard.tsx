@@ -113,6 +113,27 @@ function getLabelAlign(field: FormField): LabelAlign {
   return "left";
 }
 
+function isTextareaInputDisabled(field: FormField): boolean {
+  return (
+    field.field_type === "textarea" && field.validation?.disable_input === true
+  );
+}
+
+function setTextareaInputDisabled(
+  field: FormField,
+  disabled: boolean,
+): FormField["validation"] {
+  const validation = { ...(field.validation ?? {}) };
+  if (disabled) {
+    validation.disable_input = true;
+  } else {
+    delete validation.disable_input;
+  }
+  return Object.keys(validation).length > 0
+    ? (validation as FormField["validation"])
+    : null;
+}
+
 const FIELD_LABEL: Record<FieldType, string> = {
   text: "Text",
   textarea: "Textarea",
@@ -166,6 +187,7 @@ const FIELD_COLOR: Record<FieldType, string> = {
 interface FieldCardProps {
   field: FormField;
   formId: string;
+  isDuplicating: boolean;
   isFirst: boolean;
   isLast: boolean;
   onUpdate: (fieldId: string, updates: Partial<FormField>) => void;
@@ -180,6 +202,7 @@ interface FieldCardProps {
 export function FieldCard({
   field,
   formId,
+  isDuplicating,
   isFirst,
   isLast,
   onUpdate,
@@ -373,8 +396,13 @@ export function FieldCard({
                 className="h-7 w-7"
                 onClick={() => onDuplicate(field.id)}
                 title="Duplicate field"
+                disabled={isDuplicating}
               >
-                <Copy className="h-3 w-3" />
+                {isDuplicating ? (
+                  <Loader2 className="h-3 w-3 animate-spin" />
+                ) : (
+                  <Copy className="h-3 w-3" />
+                )}
               </Button>
               <Button
                 variant="ghost"
@@ -1169,6 +1197,30 @@ export function FieldCard({
                 />
               </div>
 
+              {localField.field_type === "textarea" && (
+                <div className="flex items-center gap-2">
+                  <input
+                    type="checkbox"
+                    id={`disable-input-${field.id}`}
+                    checked={isTextareaInputDisabled(localField)}
+                    onChange={(e) =>
+                      setLocalField((f) => ({
+                        ...f,
+                        is_required: e.target.checked ? false : f.is_required,
+                        validation: setTextareaInputDisabled(
+                          f,
+                          e.target.checked,
+                        ),
+                      }))
+                    }
+                    className="h-4 w-4 rounded"
+                  />
+                  <Label htmlFor={`disable-input-${field.id}`}>
+                    Disable input (informational only)
+                  </Label>
+                </div>
+              )}
+
               {/* Label alignment */}
               <div className="space-y-1.5">
                 <Label>Label Alignment</Label>
@@ -1204,6 +1256,7 @@ export function FieldCard({
                   type="checkbox"
                   id={`required-${field.id}`}
                   checked={localField.is_required}
+                  disabled={isTextareaInputDisabled(localField)}
                   onChange={(e) =>
                     setLocalField((f) => ({
                       ...f,
@@ -1214,6 +1267,12 @@ export function FieldCard({
                 />
                 <Label htmlFor={`required-${field.id}`}>Required</Label>
               </div>
+
+              {isTextareaInputDisabled(localField) && (
+                <p className="text-xs text-slate-400">
+                  Input is disabled, so this field won’t collect responses.
+                </p>
+              )}
 
               <ElementStyleEditor
                 title="Element colors"

@@ -181,6 +181,13 @@ export function FormRenderer({ form, previewMode = false }: FormRendererProps) {
         }
       }
 
+      if (
+        field.field_type === "textarea" &&
+        field.validation?.disable_input === true
+      ) {
+        continue;
+      }
+
       // Checkbox: individual options marked as required
       if (field.field_type === "checkbox") {
         const reqOpts =
@@ -848,15 +855,23 @@ function FieldRenderer({ field, value, onChange, error }: FieldRendererProps) {
       );
 
     case "textarea":
+      const isTextareaDisabled = field.validation?.disable_input === true;
       return (
         <div className="space-y-1">
           {label}
           <Textarea
             id={field.id}
             value={String(value ?? "")}
-            onChange={(e) => onChange(e.target.value)}
+            onChange={
+              isTextareaDisabled ? undefined : (e) => onChange(e.target.value)
+            }
             placeholder={field.placeholder ?? ""}
-            className={cn("resize-none", inputClass)}
+            readOnly={isTextareaDisabled}
+            className={cn(
+              "resize-none",
+              inputClass,
+              isTextareaDisabled && "bg-slate-50 text-slate-500 cursor-default",
+            )}
             rows={4}
             style={styleCss}
           />

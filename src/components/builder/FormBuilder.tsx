@@ -59,6 +59,8 @@ import {
   ImageIcon,
   Images,
   Upload,
+  Lock,
+  GripVertical,
   AlignLeft,
   ShieldCheck,
   History,
@@ -73,6 +75,10 @@ interface FormBuilderProps {
 
 export function FormBuilder({ form, products, userRole }: FormBuilderProps) {
   const router = useRouter();
+  const initialHasDraftChanges = form.steps.some((step) => {
+    if (step.is_draft || step.pending_delete) return true;
+    return step.fields.some((field) => field.is_draft || field.pending_delete);
+  });
   const builder = useFormBuilder({
     steps: form.steps,
     activeStepId: form.steps[0]?.id ?? "",
@@ -85,7 +91,9 @@ export function FormBuilder({ form, products, userRole }: FormBuilderProps) {
 
   // Publish state
   const [isPublished, setIsPublished] = useState(form.is_published);
-  const [hasUnpublishedChanges, setHasUnpublishedChanges] = useState(false);
+  const [hasUnpublishedChanges, setHasUnpublishedChanges] = useState(
+    form.is_published ? initialHasDraftChanges : false,
+  );
   const [publicUrl, setPublicUrl] = useState<string | null>(
     form.is_published && form.slug ? `/f/${form.slug}` : null,
   );
@@ -102,6 +110,19 @@ export function FormBuilder({ form, products, userRole }: FormBuilderProps) {
 
   // Delete form dialog
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [stepDeleteDialogOpen, setStepDeleteDialogOpen] = useState(false);
+  const [stepToDeleteId, setStepToDeleteId] = useState<string | null>(null);
+  const [resetLoading, setResetLoading] = useState(false);
+  const [refreshingAfterReset, setRefreshingAfterReset] = useState(false);
+  const [addingFieldType, setAddingFieldType] = useState<FieldType | null>(
+    null,
+  );
+  const [duplicatingStepId, setDuplicatingStepId] = useState<string | null>(
+    null,
+  );
+  const [duplicatingFieldId, setDuplicatingFieldId] = useState<string | null>(
+    null,
+  );
 
   // Preview
   const [previewOpen, setPreviewOpen] = useState(false);
@@ -333,6 +354,20 @@ export function FormBuilder({ form, products, userRole }: FormBuilderProps) {
     setHasUnpublishedChanges(false);
   }
 
+  async function handleResetChanges() {
+    setResetLoading(true);
+    const res = await fetch(`/api/forms/${form.id}/reset`, {
+      method: "POST",
+    });
+    if (!res.ok) {
+      setResetLoading(false);
+      return;
+    }
+    setHasUnpublishedChanges(false);
+    setRefreshingAfterReset(true);
+    router.refresh();
+  }
+
   function copyLink() {
     if (!publicUrl) return;
     navigator.clipboard.writeText(publicUrl);
@@ -427,9 +462,11 @@ export function FormBuilder({ form, products, userRole }: FormBuilderProps) {
     welcomePage.ui_styles?.navigation_buttons ?? {};
 
   // ─── Field operations forwarded to hook ──────────────────────────────────
-  function handleAddField(type: FieldType) {
+  async function handleAddField(type: FieldType) {
     if (!builder.activeStepId) return;
-    builder.addField(form.id, builder.activeStepId, type);
+    setAddingFieldType(type);
+    await builder.addField(form.id, builder.activeStepId, type);
+    setAddingFieldType(null);
     if (isPublished) setHasUnpublishedChanges(true);
   }
 
@@ -444,9 +481,11 @@ export function FormBuilder({ form, products, userRole }: FormBuilderProps) {
     if (isPublished) setHasUnpublishedChanges(true);
   }
 
-  function handleDuplicateField(fieldId: string) {
+  async function handleDuplicateField(fieldId: string) {
     if (!activeStep) return;
-    builder.duplicateField(form.id, activeStep.id, fieldId);
+    setDuplicatingFieldId(fieldId);
+    await builder.duplicateField(form.id, activeStep.id, fieldId);
+    setDuplicatingFieldId(null);
     if (isPublished) setHasUnpublishedChanges(true);
   }
 
@@ -472,15 +511,23 @@ export function FormBuilder({ form, products, userRole }: FormBuilderProps) {
   }
 
   function handleDeleteStep(stepId: string) {
-    const step = builder.steps.find((s) => s.id === stepId);
-    const stepName = step?.title ?? "this step";
-    const confirmed = window.confirm(
-      `Delete ${stepName}? This action can be undone before publish.`,
-    );
-    if (!confirmed) return;
+    setStepToDeleteId(stepId);
+    setStepDeleteDialogOpen(true);
+  }
 
-    builder.deleteStep(form.id, stepId);
+  async function handleDuplicateStep(stepId: string) {
+    setDuplicatingStepId(stepId);
+    await builder.duplicateStep(form.id, stepId);
+    setDuplicatingStepId(null);
     if (isPublished) setHasUnpublishedChanges(true);
+  }
+
+  function confirmDeleteStep() {
+    if (!stepToDeleteId) return;
+    builder.deleteStep(form.id, stepToDeleteId);
+    if (isPublished) setHasUnpublishedChanges(true);
+    setStepDeleteDialogOpen(false);
+    setStepToDeleteId(null);
   }
 
   function handleRenameStep(stepId: string, title: string) {
@@ -545,8 +592,13 @@ export function FormBuilder({ form, products, userRole }: FormBuilderProps) {
   // ─── Step tab drag-and-drop ──────────────────────────────────────────────
   const [stepDragId, setStepDragId] = useState<string | null>(null);
   const [stepDragOverId, setStepDragOverId] = useState<string | null>(null);
+  const canStepDragRef = useRef<string | null>(null);
 
   function handleStepDragStart(e: React.DragEvent, stepId: string) {
+    if (canStepDragRef.current !== stepId) {
+      e.preventDefault();
+      return;
+    }
     setStepDragId(stepId);
     e.dataTransfer.effectAllowed = "move";
   }
@@ -583,10 +635,11 @@ export function FormBuilder({ form, products, userRole }: FormBuilderProps) {
   function handleStepDragEnd() {
     setStepDragId(null);
     setStepDragOverId(null);
+    canStepDragRef.current = null;
   }
 
   return (
-    <div className="min-h-screen bg-slate-50 dark:bg-slate-950">
+    <div className="min-h-screen bg-slate-50 dark:bg-slate-950 relative">
       {/* Header */}
       <div className="bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800">
         <div className="max-w-6xl mx-auto px-4 h-14 flex items-center gap-3">
@@ -633,6 +686,21 @@ export function FormBuilder({ form, products, userRole }: FormBuilderProps) {
             <Badge variant={isPublished ? "success" : "secondary"}>
               {isPublished ? "Published" : "Draft"}
             </Badge>
+
+            {isPublished && hasUnpublishedChanges && (
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handleResetChanges}
+                disabled={publishLoading || resetLoading}
+                className="text-red-600 border-red-300 hover:bg-red-50 hover:text-red-700"
+              >
+                {resetLoading ? (
+                  <Loader2 className="h-4 w-4 mr-1.5 animate-spin" />
+                ) : null}
+                Reset Changes
+              </Button>
+            )}
 
             {isPublished && hasUnpublishedChanges && (
               <Button
@@ -746,6 +814,12 @@ export function FormBuilder({ form, products, userRole }: FormBuilderProps) {
                 ✦ Welcome
               </button>
             )}
+            {welcomePage.enabled && (
+              <span className="inline-flex items-center gap-1 text-slate-400 dark:text-slate-500 text-xs px-1 shrink-0">
+                <span aria-hidden>|</span>
+                <Lock className="h-3 w-3" />
+              </span>
+            )}
             {builder.steps.map((step) => (
               <div
                 key={step.id}
@@ -756,15 +830,12 @@ export function FormBuilder({ form, products, userRole }: FormBuilderProps) {
                     !step.pending_delete &&
                     "ring-2 ring-slate-400 rounded-md",
                 )}
-                draggable={!step.pending_delete}
-                onDragStart={(e) => handleStepDragStart(e, step.id)}
                 onDragOver={(e) =>
                   !step.pending_delete && handleStepDragOver(e, step.id)
                 }
                 onDrop={(e) =>
                   !step.pending_delete && handleStepDrop(e, step.id)
                 }
-                onDragEnd={handleStepDragEnd}
               >
                 {editingStepId === step.id ? (
                   <input
@@ -801,45 +872,87 @@ export function FormBuilder({ form, products, userRole }: FormBuilderProps) {
                     </button>
                   </span>
                 ) : (
-                  <button
-                    onClick={() => {
-                      builder.setActiveStep(step.id);
-                      setActiveView("step");
-                    }}
-                    onDoubleClick={() => {
-                      setEditingStepId(step.id);
-                      setStepTitleInput(step.title);
-                    }}
-                    className={cn(
-                      "px-3 py-1.5 rounded-md text-sm font-medium transition-colors border",
-                      step.id === builder.activeStepId && activeView === "step"
-                        ? "bg-slate-900 text-white border-slate-900 dark:bg-slate-100 dark:text-slate-900 dark:border-slate-100"
-                        : "bg-white text-slate-600 border-slate-300 hover:bg-slate-50 dark:bg-slate-800 dark:text-slate-300 dark:border-slate-600 dark:hover:bg-slate-700",
-                    )}
-                  >
-                    {(stepNumberById.get(step.id) ?? "•") + ". " + step.title}
-                  </button>
-                )}
-                {!step.pending_delete &&
-                  builder.steps.filter((s) => !s.pending_delete).length > 1 && (
+                  <div className="flex items-center">
                     <button
-                      className="ml-1 text-slate-400 hover:text-red-500 transition-colors"
-                      onClick={() => handleDeleteStep(step.id)}
-                      title="Delete step"
+                      type="button"
+                      draggable
+                      onPointerDown={() => {
+                        canStepDragRef.current = step.id;
+                      }}
+                      onPointerUp={() => {
+                        canStepDragRef.current = null;
+                      }}
+                      onDragStart={(e) => handleStepDragStart(e, step.id)}
+                      onDragEnd={handleStepDragEnd}
+                      className="h-8 w-6 inline-flex items-center justify-center text-slate-400 hover:text-slate-600 dark:text-slate-500 dark:hover:text-slate-300 cursor-grab active:cursor-grabbing"
+                      title="Drag to reorder"
+                      aria-label="Drag step to reorder"
                     >
-                      ×
+                      <GripVertical className="h-3.5 w-3.5" />
                     </button>
-                  )}
+                    <button
+                      onClick={() => {
+                        builder.setActiveStep(step.id);
+                        setActiveView("step");
+                      }}
+                      onDoubleClick={() => {
+                        setEditingStepId(step.id);
+                        setStepTitleInput(step.title);
+                      }}
+                      className={cn(
+                        "px-3 py-1.5 rounded-md text-sm font-medium transition-colors border",
+                        step.id === builder.activeStepId &&
+                          activeView === "step"
+                          ? "bg-slate-900 text-white border-slate-900 dark:bg-slate-100 dark:text-slate-900 dark:border-slate-100"
+                          : "bg-white text-slate-600 border-slate-300 hover:bg-slate-50 dark:bg-slate-800 dark:text-slate-300 dark:border-slate-600 dark:hover:bg-slate-700",
+                      )}
+                    >
+                      {(stepNumberById.get(step.id) ?? "•") + ". " + step.title}
+                    </button>
+                  </div>
+                )}
+                {!step.pending_delete && (
+                  <>
+                    <button
+                      className="ml-1 text-slate-400 hover:text-slate-700 transition-colors"
+                      onClick={() => {
+                        void handleDuplicateStep(step.id);
+                      }}
+                      title="Duplicate step"
+                      disabled={duplicatingStepId === step.id}
+                    >
+                      {duplicatingStepId === step.id ? (
+                        <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                      ) : (
+                        <Copy className="h-3.5 w-3.5" />
+                      )}
+                    </button>
+                    {builder.steps.filter((s) => !s.pending_delete).length >
+                      1 && (
+                      <button
+                        className="ml-1 text-slate-400 hover:text-red-500 transition-colors"
+                        onClick={() => handleDeleteStep(step.id)}
+                        title="Delete step"
+                      >
+                        ×
+                      </button>
+                    )}
+                  </>
+                )}
               </div>
             ))}
             <Button
               variant="outline"
               size="sm"
-              onClick={() => handleAddStep()}
+              onClick={handleAddStep}
               className="shrink-0"
             >
               <Plus className="h-3.5 w-3.5 mr-1" /> Add Step
             </Button>
+            <span className="inline-flex items-center gap-1 text-slate-400 dark:text-slate-500 text-xs px-1 shrink-0">
+              <span aria-hidden>|</span>
+              <Lock className="h-3 w-3" />
+            </span>
             {/* Thank You tab — always visible, non-removable */}
             <button
               onClick={() => setActiveView("thankyou")}
@@ -857,7 +970,8 @@ export function FormBuilder({ form, products, userRole }: FormBuilderProps) {
           {/* Step hint */}
           {builder.steps.length > 1 && (
             <p className="text-xs text-slate-400 dark:text-slate-500 mb-3">
-              Double-click a step tab to rename it
+              Double-click a step tab to rename it • Hold and drag a step tab to
+              reorder
             </p>
           )}
 
@@ -903,11 +1017,14 @@ export function FormBuilder({ form, products, userRole }: FormBuilderProps) {
                   <FieldCard
                     field={field}
                     formId={form.id}
+                    isDuplicating={duplicatingFieldId === field.id}
                     isFirst={idx === 0}
                     isLast={idx === activeStep.fields.length - 1}
                     onUpdate={handleUpdateField}
                     onDelete={handleDeleteField}
-                    onDuplicate={handleDuplicateField}
+                    onDuplicate={(id) => {
+                      void handleDuplicateField(id);
+                    }}
                     onRestore={handleRestoreField}
                     onMove={handleMoveField}
                     onDragHandlePointerDown={() => {
@@ -925,7 +1042,9 @@ export function FormBuilder({ form, products, userRole }: FormBuilderProps) {
 
         {/* Right: Toolbar */}
         <div className="w-52 shrink-0 self-start sticky top-0 max-h-[calc(100vh-3.5rem)] overflow-y-auto">
-          {activeView === "step" && <FieldToolbar onAdd={handleAddField} />}
+          {activeView === "step" && (
+            <FieldToolbar onAdd={handleAddField} addingType={addingFieldType} />
+          )}
 
           {/* Welcome Page toggle — hidden when editing Thank You */}
           {activeView !== "thankyou" && (
@@ -1246,6 +1365,16 @@ export function FormBuilder({ form, products, userRole }: FormBuilderProps) {
         </div>
       )}
 
+      {/* Refresh overlay after reset */}
+      {refreshingAfterReset && (
+        <div className="absolute inset-0 z-40 bg-slate-900/15 backdrop-blur-[1px] flex items-center justify-center">
+          <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg px-4 py-3 flex items-center gap-2 text-sm text-slate-600 dark:text-slate-300 shadow">
+            <Loader2 className="h-4 w-4 animate-spin" />
+            Refreshing form…
+          </div>
+        </div>
+      )}
+
       {/* Delete form dialog */}
       <Dialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
         <DialogContent>
@@ -1265,6 +1394,41 @@ export function FormBuilder({ form, products, userRole }: FormBuilderProps) {
             </Button>
             <Button variant="destructive" onClick={handleDeleteForm}>
               Delete
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Delete step dialog */}
+      <Dialog
+        open={stepDeleteDialogOpen}
+        onOpenChange={(open) => {
+          setStepDeleteDialogOpen(open);
+          if (!open) setStepToDeleteId(null);
+        }}
+      >
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Delete Step</DialogTitle>
+            <DialogDescription>
+              {`Are you sure you want to delete ${
+                builder.steps.find((s) => s.id === stepToDeleteId)?.title ??
+                "this step"
+              }? You can undo this before publish.`}
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => {
+                setStepDeleteDialogOpen(false);
+                setStepToDeleteId(null);
+              }}
+            >
+              Cancel
+            </Button>
+            <Button variant="destructive" onClick={confirmDeleteStep}>
+              Delete Step
             </Button>
           </DialogFooter>
         </DialogContent>

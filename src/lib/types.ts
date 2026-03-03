@@ -171,6 +171,7 @@ export interface FormField {
         appearance?: ElementColorStyle;
         label_align?: LabelAlign;
         required_options?: string[];
+        disable_input?: boolean;
       })
     | null;
   is_draft: boolean;

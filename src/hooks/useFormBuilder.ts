@@ -161,26 +161,130 @@ export function useFormBuilder(initial: BuilderState) {
 
   const reorderSteps = useCallback(
     async (formId: string, orderedStepIds: string[]) => {
-      setState((s) => {
-        const byId = new Map(s.steps.map((step) => [step.id, step]));
-        const ordered = orderedStepIds
-          .map((id) => byId.get(id))
-          .filter(Boolean) as (FormStep & { fields: FormField[] })[];
+      const buildReorderedSteps = (
+        steps: (FormStep & { fields: FormField[] })[],
+      ) => {
+        const byId = new Map(steps.map((step) => [step.id, step]));
+        const orderedSet = new Set(orderedStepIds);
 
-        const pending = s.steps.filter((step) => step.pending_delete);
+        const orderedActive = orderedStepIds
+          .map((id) => byId.get(id))
+          .filter((step): step is FormStep & { fields: FormField[] } =>
+            Boolean(step && !step.pending_delete),
+          );
+
+        const remainingActive = steps
+          .filter((step) => !step.pending_delete && !orderedSet.has(step.id))
+          .sort((a, b) => a.step_order - b.step_order);
+
+        const active = [...orderedActive, ...remainingActive].map(
+          (step, index) => ({
+            ...step,
+            step_order: index,
+            title: isAutoStepTitle(step.title)
+              ? `Step ${index + 1}`
+              : step.title,
+          }),
+        );
+
+        const pending = steps
+          .filter((step) => step.pending_delete)
+          .sort((a, b) => a.step_order - b.step_order);
+
+        return [...active, ...pending];
+      };
+
+      setState((s) => {
         return {
           ...s,
-          steps: normalizeWorkingSteps([...ordered, ...pending]),
+          steps: buildReorderedSteps(s.steps),
         };
       });
 
-      const current = state.steps;
-      const byId = new Map(current.map((step) => [step.id, step]));
-      const ordered = orderedStepIds
-        .map((id) => byId.get(id))
-        .filter(Boolean) as (FormStep & { fields: FormField[] })[];
-      const pending = current.filter((step) => step.pending_delete);
-      const normalized = normalizeWorkingSteps([...ordered, ...pending]);
+      const normalized = buildReorderedSteps(state.steps);
+
+      await Promise.all(
+        normalized
+          .filter((step) => !step.pending_delete)
+          .map((step) =>
+            fetch(`/api/forms/${formId}/steps`, {
+              method: "PUT",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({
+                id: step.id,
+                step_order: step.step_order,
+                title: step.title,
+              }),
+            }),
+          ),
+      );
+    },
+    [state.steps],
+  );
+
+  const duplicateStep = useCallback(
+    async (formId: string, stepId: string) => {
+      const sourceStep = state.steps.find((step) => step.id === stepId);
+      if (!sourceStep || sourceStep.pending_delete) return;
+
+      const createStepRes = await fetch(`/api/forms/${formId}/steps`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          title: `${sourceStep.title} (copy)`,
+          step_order: sourceStep.step_order + 1,
+        }),
+      });
+      if (!createStepRes.ok) return;
+
+      const newStep: FormStep = await createStepRes.json();
+      const sourceFields = [...sourceStep.fields]
+        .filter((field) => !field.pending_delete)
+        .sort((a, b) => a.field_order - b.field_order);
+
+      const duplicatedFields: FormField[] = [];
+      for (const [index, sourceField] of sourceFields.entries()) {
+        const res = await fetch(`/api/forms/${formId}/fields`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            step_id: newStep.id,
+            field_type: sourceField.field_type,
+            label: sourceField.label,
+            placeholder: sourceField.placeholder,
+            helper_text: sourceField.helper_text,
+            is_required: sourceField.is_required,
+            field_order: index,
+            options: sourceField.options ? [...sourceField.options] : null,
+            image_url: sourceField.image_url,
+            image_alt: sourceField.image_alt,
+            validation: sourceField.validation
+              ? JSON.parse(JSON.stringify(sourceField.validation))
+              : null,
+          }),
+        });
+
+        if (res.ok) {
+          const createdField: FormField = await res.json();
+          duplicatedFields.push(createdField);
+        }
+      }
+
+      const insertAfterIndex = state.steps.findIndex(
+        (step) => step.id === stepId,
+      );
+      const nextSteps = [...state.steps];
+      nextSteps.splice(Math.max(0, insertAfterIndex + 1), 0, {
+        ...newStep,
+        fields: duplicatedFields,
+      });
+
+      const normalized = normalizeWorkingSteps(nextSteps);
+      setState((s) => ({
+        ...s,
+        steps: normalized,
+        activeStepId: newStep.id,
+      }));
 
       await Promise.all(
         normalized
@@ -584,6 +688,7 @@ export function useFormBuilder(initial: BuilderState) {
     addStep,
     renameStep,
     deleteStep,
+    duplicateStep,
     addField,
     updateField,
     deleteField,
