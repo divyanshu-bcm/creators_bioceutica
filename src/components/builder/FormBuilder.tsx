@@ -113,7 +113,7 @@ export function FormBuilder({ form, products, userRole }: FormBuilderProps) {
   const [stepDeleteDialogOpen, setStepDeleteDialogOpen] = useState(false);
   const [stepToDeleteId, setStepToDeleteId] = useState<string | null>(null);
   const [resetLoading, setResetLoading] = useState(false);
-  const [refreshingAfterReset, setRefreshingAfterReset] = useState(false);
+  const [contentRefreshing, setContentRefreshing] = useState(false);
   const [addingFieldType, setAddingFieldType] = useState<FieldType | null>(
     null,
   );
@@ -167,6 +167,24 @@ export function FormBuilder({ form, products, userRole }: FormBuilderProps) {
   const stepNumberById = new Map(
     visibleSteps.map((step, index) => [step.id, index + 1]),
   );
+
+  useEffect(() => {
+    setIsPublished(form.is_published);
+    setHasUnpublishedChanges(
+      form.is_published ? initialHasDraftChanges : false,
+    );
+
+    if (contentRefreshing) {
+      setContentRefreshing(false);
+      setPublishLoading(false);
+      setResetLoading(false);
+    }
+  }, [
+    form.is_published,
+    form.updated_at,
+    initialHasDraftChanges,
+    contentRefreshing,
+  ]);
 
   // ─── Form title save ─────────────────────────────────────────────────────
   async function saveTitle() {
@@ -342,6 +360,7 @@ export function FormBuilder({ form, products, userRole }: FormBuilderProps) {
       setIsPublished(true);
       setPublicUrl(data.publicUrl);
       setHasUnpublishedChanges(false);
+      setContentRefreshing(true);
       router.refresh(); // reload server components so promoted field IDs are fresh
     }
   }
@@ -364,7 +383,7 @@ export function FormBuilder({ form, products, userRole }: FormBuilderProps) {
       return;
     }
     setHasUnpublishedChanges(false);
-    setRefreshingAfterReset(true);
+    setContentRefreshing(true);
     router.refresh();
   }
 
@@ -1365,8 +1384,8 @@ export function FormBuilder({ form, products, userRole }: FormBuilderProps) {
         </div>
       )}
 
-      {/* Refresh overlay after reset */}
-      {refreshingAfterReset && (
+      {/* Refresh overlay after publish/reset */}
+      {contentRefreshing && (
         <div className="absolute inset-0 z-40 bg-slate-900/15 backdrop-blur-[1px] flex items-center justify-center">
           <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg px-4 py-3 flex items-center gap-2 text-sm text-slate-600 dark:text-slate-300 shadow">
             <Loader2 className="h-4 w-4 animate-spin" />

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect } from "react";
 import type { FormField, FormStep, FieldType } from "@/lib/types";
 import { PREDEFINED_TEMPLATES } from "@/lib/predefined-groups";
 import type { PredefinedGroupType } from "@/lib/predefined-groups";
@@ -36,6 +36,10 @@ function normalizeWorkingSteps(
 export function useFormBuilder(initial: BuilderState) {
   const [state, setState] = useState<BuilderState>(initial);
   const [saving, setSaving] = useState(false);
+
+  useEffect(() => {
+    setState(initial);
+  }, [initial.steps, initial.activeStepId]);
 
   const setActiveStep = useCallback((stepId: string) => {
     setState((s) => ({ ...s, activeStepId: stepId }));
