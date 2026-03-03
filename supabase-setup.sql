@@ -167,3 +167,39 @@ create table if not exists public.products (
 -- [{ product_id, quantity, billing_type }] where billing_type is 'paid' | 'free'
 alter table public.forms
   add column if not exists form_products jsonb not null default '[]'::jsonb;
+
+-- ============================================================
+-- 15. Creator Campaigns — per-deal lifecycle tracking
+-- ============================================================
+-- Each row represents one collab campaign between a standard creator
+-- and the team. Created by n8n after a form is filled.
+-- phase values: 'form_filled' | 'order_received' | 'content_published'
+create table if not exists public.creator_campaigns (
+  id                   uuid primary key default gen_random_uuid(),
+  prospect_id          uuid not null references public.prospects_standardcreators(prospect_id) on delete cascade,
+  form_id              uuid references public.forms(id) on delete set null,
+  form_submission_id   uuid references public.form_submissions(id) on delete set null,
+  order_id             text null,
+  phase                text not null default 'form_filled'
+                         check (phase in ('form_filled', 'order_received', 'content_published')),
+  form_filled_at       timestamptz default now(),
+  order_received_at    timestamptz null,
+  content_published_at timestamptz null,
+  created_at           timestamptz default now(),
+  updated_at           timestamptz default now()
+);
+
+create index if not exists creator_campaigns_prospect_id_idx on public.creator_campaigns(prospect_id);
+create index if not exists creator_campaigns_form_submission_id_idx on public.creator_campaigns(form_submission_id);
+
+-- RLS: authenticated users can read; only service-role (n8n / admin API) can write.
+alter table public.creator_campaigns enable row level security;
+
+create policy "authenticated users can read campaigns"
+  on public.creator_campaigns for select
+  using (auth.role() = 'authenticated');
+
+create policy "service role full access to campaigns"
+  on public.creator_campaigns for all
+  using (auth.role() = 'service_role')
+  with check (auth.role() = 'service_role');

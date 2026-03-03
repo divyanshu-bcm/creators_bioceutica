@@ -1,14 +1,8 @@
 "use client";
 
 import { useState, useEffect, useCallback, useRef } from "react";
-import {
-  Search,
-  ChevronLeft,
-  ChevronRight,
-  Trash2,
-  X,
-  Loader2,
-} from "lucide-react";
+import { Search, ChevronLeft, ChevronRight, X, Loader2 } from "lucide-react";
+import type { CampaignPhase } from "@/lib/types";
 import { ProspectTableConfig } from "@/lib/prospects-config";
 import { PageCursor } from "@/lib/prospects-api";
 import { ProspectCard } from "@/components/dashboard/ProspectCard";
@@ -43,8 +37,11 @@ export function ProspectListView({ slug, config }: ProspectListViewProps) {
   const [hasNext, setHasNext] = useState(false);
   const [searchInput, setSearchInput] = useState("");
   const [activeSearch, setActiveSearch] = useState("");
-  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
-  const [bulkDeleting, setBulkDeleting] = useState(false);
+  // Phase filter state (standardcreators only)
+  const [phaseFilter, setPhaseFilter] = useState<"all" | CampaignPhase>("all");
+  const [filteredProspectIds, setFilteredProspectIds] =
+    useState<Set<string> | null>(null);
+  const [phaseFilterLoading, setPhaseFilterLoading] = useState(false);
 
   // Track the latest fetch to ignore stale responses
   const fetchIdRef = useRef(0);
@@ -74,7 +71,6 @@ export function ProspectListView({ slug, config }: ProspectListViewProps) {
         setData(result.data ?? []);
         setHasNext(result.hasNext ?? false);
         setCurrentCursor(result.nextCursor ?? null);
-        setSelectedIds(new Set());
       } catch {
         if (fetchId !== fetchIdRef.current) return;
         setError("Network error. Please try again.");
@@ -91,7 +87,8 @@ export function ProspectListView({ slug, config }: ProspectListViewProps) {
     setCurrentCursor(null);
     setSearchInput("");
     setActiveSearch("");
-    setSelectedIds(new Set());
+    setPhaseFilter("all");
+    setFilteredProspectIds(null);
     fetchData(null, "", pageSize);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [slug]);
@@ -136,60 +133,32 @@ export function ProspectListView({ slug, config }: ProspectListViewProps) {
 
   const pageNumber = cursorStack.length + 1;
 
-  // Selection helpers
-  function toggleSelect(id: string) {
-    setSelectedIds((prev) => {
-      const next = new Set(prev);
-      if (next.has(id)) next.delete(id);
-      else next.add(id);
-      return next;
-    });
-  }
-
-  function toggleSelectAll() {
-    if (selectedIds.size === data.length) {
-      setSelectedIds(new Set());
-    } else {
-      setSelectedIds(new Set(data.map((r) => r[pk] as string)));
-    }
-  }
-
-  async function handleBulkDelete() {
-    if (selectedIds.size === 0) return;
-    if (
-      !confirm(
-        `Delete ${selectedIds.size} selected record(s)? This cannot be undone.`,
-      )
-    )
-      return;
-    setBulkDeleting(true);
-    try {
-      const res = await fetch(`${apiBase}/bulk-delete`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ ids: Array.from(selectedIds) }),
-      });
-      if (res.ok) {
-        // Re-fetch current page
-        const cursor = cursorStack[cursorStack.length - 1] ?? null;
-        fetchData(cursor, activeSearch, pageSize);
-      }
-    } finally {
-      setBulkDeleting(false);
-    }
-  }
-
   // Called by ProspectCard on inline single delete
   function handleSingleDelete(id: string) {
     setData((prev) => prev.filter((r) => r[pk] !== id));
-    setSelectedIds((prev) => {
-      const n = new Set(prev);
-      n.delete(id);
-      return n;
-    });
   }
 
-  const allSelected = data.length > 0 && selectedIds.size === data.length;
+  // Phase filter (standardcreators only)
+  async function applyPhaseFilter(phase: "all" | CampaignPhase) {
+    setPhaseFilter(phase);
+    if (phase === "all") {
+      setFilteredProspectIds(null);
+      return;
+    }
+    setPhaseFilterLoading(true);
+    try {
+      const res = await fetch(`/api/campaigns?phase=${phase}`);
+      const d = await res.json();
+      setFilteredProspectIds(new Set<string>(d.prospect_ids ?? []));
+    } finally {
+      setPhaseFilterLoading(false);
+    }
+  }
+
+  const displayData =
+    filteredProspectIds !== null
+      ? data.filter((r) => filteredProspectIds.has(r[pk] as string))
+      : data;
 
   return (
     <div className="space-y-4">
@@ -230,24 +199,6 @@ export function ProspectListView({ slug, config }: ProspectListViewProps) {
         </div>
 
         <div className="flex items-center gap-2 ml-auto">
-          {/* Bulk delete */}
-          {selectedIds.size > 0 && (
-            <Button
-              onClick={handleBulkDelete}
-              disabled={bulkDeleting}
-              size="sm"
-              variant="outline"
-              className="gap-2 text-red-600 border-red-200 hover:bg-red-50 hover:border-red-300 dark:text-red-400 dark:border-red-800 dark:hover:bg-red-950/30"
-            >
-              {bulkDeleting ? (
-                <Loader2 className="h-3.5 w-3.5 animate-spin" />
-              ) : (
-                <Trash2 className="h-3.5 w-3.5" />
-              )}
-              Delete {selectedIds.size}
-            </Button>
-          )}
-
           {/* Page size */}
           <Select value={String(pageSize)} onValueChange={handlePageSizeChange}>
             <SelectTrigger className="h-9 w-24">
@@ -273,27 +224,41 @@ export function ProspectListView({ slug, config }: ProspectListViewProps) {
         </div>
       </div>
 
+      {/* Phase filter chips — standardcreators only */}
+      {slug === "standardcreators" && (
+        <div className="flex items-center gap-2 flex-wrap">
+          {phaseFilterLoading && (
+            <Loader2 className="h-3.5 w-3.5 animate-spin text-slate-400" />
+          )}
+          {(
+            [
+              { value: "all", label: "All" },
+              { value: "form_filled", label: "Form Filled" },
+              { value: "order_received", label: "Order Received" },
+              { value: "content_published", label: "Published" },
+            ] as { value: "all" | CampaignPhase; label: string }[]
+          ).map((opt) => (
+            <button
+              key={opt.value}
+              onClick={() => applyPhaseFilter(opt.value)}
+              className={`px-3 py-1 rounded-full text-xs font-medium border transition-colors ${
+                phaseFilter === opt.value
+                  ? "bg-slate-900 text-white border-slate-900 dark:bg-slate-100 dark:text-slate-900 dark:border-slate-100"
+                  : "bg-white text-slate-600 border-slate-200 hover:border-slate-400 dark:bg-slate-900 dark:text-slate-400 dark:border-slate-700 dark:hover:border-slate-500"
+              }`}
+            >
+              {opt.label}
+            </button>
+          ))}
+        </div>
+      )}
+
       {/* Active search banner */}
       {activeSearch && (
         <div className="flex items-center gap-2 text-sm text-slate-600 dark:text-slate-400 bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700 rounded-lg px-3 py-2">
           <Search className="h-3.5 w-3.5 shrink-0" />
           Showing results for <strong>&ldquo;{activeSearch}&rdquo;</strong>{" "}
           across all records in {config.displayLabel}
-        </div>
-      )}
-
-      {/* Select all bar */}
-      {data.length > 0 && (
-        <div className="flex items-center gap-3 px-1">
-          <input
-            type="checkbox"
-            checked={allSelected}
-            onChange={toggleSelectAll}
-            className="h-4 w-4 rounded border-slate-300 dark:border-slate-600 accent-slate-900 cursor-pointer"
-          />
-          <span className="text-sm text-slate-500 dark:text-slate-400">
-            {allSelected ? "All selected" : `${selectedIds.size} selected`}
-          </span>
         </div>
       )}
 
@@ -320,14 +285,12 @@ export function ProspectListView({ slug, config }: ProspectListViewProps) {
         </div>
       ) : (
         <div className="space-y-3">
-          {data.map((record) => (
+          {displayData.map((record) => (
             <ProspectCard
               key={record[pk] as string}
               record={record}
               config={config}
               slug={slug}
-              selected={selectedIds.has(record[pk] as string)}
-              onToggleSelect={() => toggleSelect(record[pk] as string)}
               onDelete={handleSingleDelete}
             />
           ))}

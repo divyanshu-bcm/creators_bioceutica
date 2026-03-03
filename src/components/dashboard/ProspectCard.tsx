@@ -28,8 +28,6 @@ interface ProspectCardProps {
   record: Record<string, unknown>;
   config: ProspectTableConfig;
   slug: string;
-  selected: boolean;
-  onToggleSelect: () => void;
   onDelete: (id: string) => void;
 }
 
@@ -114,8 +112,6 @@ export function ProspectCard({
   record,
   config,
   slug,
-  selected,
-  onToggleSelect,
   onDelete,
 }: ProspectCardProps) {
   const router = useRouter();
@@ -183,29 +179,10 @@ export function ProspectCard({
       className={cn(
         "group relative flex items-center gap-4 bg-white dark:bg-slate-900 rounded-xl border px-5 py-4 cursor-pointer transition-all duration-150",
         "hover:shadow-md hover:-translate-y-px hover:border-slate-300 dark:hover:border-slate-600",
-        selected
-          ? "border-slate-900 dark:border-slate-100 shadow-sm ring-1 ring-slate-900 dark:ring-slate-100"
-          : "border-slate-200 dark:border-slate-800",
+        "border-slate-200 dark:border-slate-800",
         deleting && "opacity-50 pointer-events-none",
       )}
     >
-      {/* Checkbox */}
-      <div
-        onClick={(e) => {
-          e.stopPropagation();
-          onToggleSelect();
-        }}
-        className="shrink-0"
-      >
-        <input
-          type="checkbox"
-          checked={selected}
-          onChange={onToggleSelect}
-          onClick={(e) => e.stopPropagation()}
-          className="h-4 w-4 rounded border-slate-300 dark:border-slate-600 accent-slate-900 dark:accent-slate-100 cursor-pointer"
-        />
-      </div>
-
       {/* Avatar */}
       <div
         className={cn(

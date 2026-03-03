@@ -195,6 +195,29 @@ export interface FormFull extends Form {
   steps: (FormStep & { fields: FormField[] })[];
 }
 
+// ─── Creator Campaigns ────────────────────────
+export type CampaignPhase =
+  | "form_filled"
+  | "order_received"
+  | "content_published";
+
+export interface CreatorCampaign {
+  id: string;
+  prospect_id: string;
+  form_id: string | null;
+  form_submission_id: string | null;
+  order_id: string | null;
+  phase: CampaignPhase;
+  form_filled_at: string;
+  order_received_at: string | null;
+  content_published_at: string | null;
+  created_at: string;
+  updated_at: string;
+  // joined
+  form?: { id: string; title: string; slug: string | null } | null;
+}
+// ──────────────────────────────────────────────
+
 // sessionStorage shape for multi-step progress
 export interface FormProgressState {
   currentStep: number;
