@@ -1,6 +1,7 @@
 "use client";
 
 import { createContext, useContext, useEffect, useState } from "react";
+import { usePathname } from "next/navigation";
 
 type Theme = "light" | "dark";
 
@@ -14,6 +15,8 @@ export function useTheme() {
 }
 
 export function ThemeProvider({ children }: { children: React.ReactNode }) {
+  const pathname = usePathname();
+  const isDashboardRoute = pathname?.startsWith("/dashboard") ?? false;
   const [theme, setTheme] = useState<Theme>(() => {
     if (typeof window === "undefined") return "light";
     return (localStorage.getItem("bc_theme") as Theme | null) === "dark"
@@ -21,18 +24,18 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
       : "light";
   });
 
-  // Sync dark class to <html> whenever theme changes
+  // Keep localStorage and <html>.dark in sync with theme.
+  // Also re-apply on route changes to recover from route-specific class mutations.
   useEffect(() => {
-    document.documentElement.classList.toggle("dark", theme === "dark");
-  }, [theme]);
+    localStorage.setItem("bc_theme", theme);
+    document.documentElement.classList.toggle(
+      "dark",
+      isDashboardRoute && theme === "dark",
+    );
+  }, [theme, pathname, isDashboardRoute]);
 
   function toggle() {
-    setTheme((prev) => {
-      const next = prev === "light" ? "dark" : "light";
-      localStorage.setItem("bc_theme", next);
-      document.documentElement.classList.toggle("dark", next === "dark");
-      return next;
-    });
+    setTheme((prev) => (prev === "light" ? "dark" : "light"));
   }
 
   return (

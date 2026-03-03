@@ -15,7 +15,7 @@ interface Props {
 
 function ErrorCard({ message }: { message: string }) {
   return (
-    <div className="min-h-screen flex items-center justify-center bg-slate-50 dark:bg-slate-950 px-4">
+    <div className="min-h-screen flex items-center justify-center bg-slate-50 px-4">
       <Card className="w-full max-w-sm">
         <CardHeader>
           <CardTitle className="text-xl text-red-600">
@@ -23,12 +23,10 @@ function ErrorCard({ message }: { message: string }) {
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
-          <p className="text-sm text-slate-600 dark:text-slate-400">
-            {message}
-          </p>
+          <p className="text-sm text-slate-600">{message}</p>
           <Link
             href="/login"
-            className="text-sm text-slate-500 hover:text-slate-700 dark:hover:text-slate-300 underline"
+            className="text-sm text-slate-500 hover:text-slate-700 underline"
           >
             Go to login
           </Link>
@@ -69,7 +67,7 @@ export default async function AcceptInvitationPage({ searchParams }: Props) {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-slate-50 dark:bg-slate-950 px-4">
+    <div className="min-h-screen flex items-center justify-center bg-slate-50 px-4">
       <Card className="w-full max-w-sm">
         <CardHeader>
           <CardTitle className="text-2xl">Accept Invitation</CardTitle>

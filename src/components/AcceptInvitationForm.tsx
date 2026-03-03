@@ -57,18 +57,11 @@ export function AcceptInvitationForm({
   return (
     <div className="space-y-4">
       {/* Greeting */}
-      <div className="bg-slate-50 dark:bg-slate-800 rounded-lg px-4 py-3 text-sm space-y-0.5">
-        {fullName && (
-          <p className="font-medium text-slate-900 dark:text-slate-100">
-            {fullName}
-          </p>
-        )}
-        <p className="text-slate-500 dark:text-slate-400">{email}</p>
+      <div className="bg-slate-50 rounded-lg px-4 py-3 text-sm space-y-0.5">
+        {fullName && <p className="font-medium text-slate-900">{fullName}</p>}
+        <p className="text-slate-500">{email}</p>
         <p className="text-xs text-slate-400 capitalize mt-1">
-          Role:{" "}
-          <span className="font-medium text-slate-600 dark:text-slate-300">
-            {role}
-          </span>
+          Role: <span className="font-medium text-slate-600">{role}</span>
         </p>
       </div>
 
@@ -97,7 +90,7 @@ export function AcceptInvitationForm({
           />
         </div>
         {error && (
-          <p className="text-sm text-red-600 bg-red-50 dark:bg-red-950/30 border border-red-200 dark:border-red-800 rounded-md px-3 py-2">
+          <p className="text-sm text-red-600 bg-red-50 border border-red-200 rounded-md px-3 py-2">
             {error}
           </p>
         )}

@@ -549,7 +549,7 @@ function PublicFormCopyright({ visible }: PublicFormCopyrightProps) {
 
   return (
     <div className="pb-4 text-center">
-      <p className="text-xs text-slate-400 dark:text-slate-500 inline-flex items-center gap-1.5">
+      <p className="text-xs text-slate-400 inline-flex items-center gap-1.5">
         <Copyright className="h-3 w-3" />
         Bioceutica Milano 2026
       </p>
@@ -788,13 +788,12 @@ function FieldRenderer({ field, value, onChange, error }: FieldRendererProps) {
           <div
             className={cn(
               "flex items-center rounded-md border border-slate-300 bg-white text-sm",
-              "dark:border-slate-600 dark:bg-slate-800",
               error && "border-red-400",
               fieldStyle?.border_color && "border",
             )}
             style={styleCss}
           >
-            <span className="px-3 py-2 text-slate-500 dark:text-slate-300 border-r border-slate-200 dark:border-slate-700">
+            <span className="px-3 py-2 text-slate-500 border-r border-slate-200">
               {PHONE_PREFIX}
             </span>
             <Input
@@ -998,15 +997,15 @@ function FieldRenderer({ field, value, onChange, error }: FieldRendererProps) {
       return (
         <div className="space-y-4">
           {label}
-          <div className="flex gap-3">
+          <div className="flex w-full items-stretch justify-between gap-3">
             <button
               type="button"
               onClick={() => onChange(trueLabel)}
               className={cn(
-                "rounded-lg border-2 px-7 py-1.5 text-sm font-medium transition-all",
+                "w-[40%] rounded-lg border-2 px-4 py-2 text-center text-sm font-medium transition-all",
                 value === trueLabel
-                  ? "border-emerald-500 bg-emerald-50 text-emerald-700 dark:border-emerald-500 dark:bg-emerald-950/40 dark:text-emerald-300"
-                  : "border-slate-200 bg-white text-slate-700 hover:border-slate-300 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-300",
+                  ? "border-emerald-500 bg-emerald-50 text-emerald-700"
+                  : "border-slate-200 bg-white text-slate-700 hover:border-slate-300",
                 error && "border-red-300",
               )}
             >
@@ -1016,10 +1015,10 @@ function FieldRenderer({ field, value, onChange, error }: FieldRendererProps) {
               type="button"
               onClick={() => onChange(falseLabel)}
               className={cn(
-                "rounded-lg border-2 px-7 py-1.5 text-sm font-medium transition-all",
+                "w-[40%] rounded-lg border-2 px-4 py-2 text-center text-sm font-medium transition-all",
                 value === falseLabel
-                  ? "border-red-400 bg-red-50 text-red-700 dark:border-red-500 dark:bg-red-950/40 dark:text-red-300"
-                  : "border-slate-200 bg-white text-slate-700 hover:border-slate-300 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-300",
+                  ? "border-red-400 bg-red-50 text-red-700"
+                  : "border-slate-200 bg-white text-slate-700 hover:border-slate-300",
                 error && "border-red-300",
               )}
             >
