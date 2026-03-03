@@ -25,6 +25,8 @@ export async function POST(
     .insert({
       title: `${original.title} (Copy)`,
       description: original.description,
+      welcome_page: original.welcome_page,
+      thank_you_page: original.thank_you_page,
       is_published: false,
       slug: null,
     })

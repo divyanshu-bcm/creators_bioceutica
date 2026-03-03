@@ -22,6 +22,7 @@ import { FieldToolbar } from "./FieldToolbar";
 import { FieldCard } from "./FieldCard";
 import { ElementStyleEditor } from "./ElementStyleEditor";
 import { RichTextEditor } from "./RichTextEditor";
+import { ImageLibraryModal } from "./ImageLibraryModal";
 import { FormRenderer } from "@/components/renderer/FormRenderer";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -56,6 +57,8 @@ import {
   X,
   RefreshCw,
   ImageIcon,
+  Images,
+  Upload,
   AlignLeft,
   ShieldCheck,
   History,
@@ -1206,6 +1209,7 @@ function WelcomePageEditor({
   onStartButtonStyleChange,
 }: WelcomePageEditorProps) {
   const [uploading, setUploading] = useState(false);
+  const [libraryOpen, setLibraryOpen] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   async function handleLogoUpload(e: React.ChangeEvent<HTMLInputElement>) {
@@ -1225,6 +1229,10 @@ function WelcomePageEditor({
 
   function removeLogo() {
     onChange({ ...wp, logo_url: null, logo_alt: null });
+  }
+
+  function selectLogoFromLibrary(url: string) {
+    onChange({ ...wp, logo_url: url, logo_alt: wp.logo_alt ?? "Logo" });
   }
 
   function addTerm() {
@@ -1274,9 +1282,18 @@ function WelcomePageEditor({
                 {uploading ? (
                   <Loader2 className="h-3.5 w-3.5 mr-1 animate-spin" />
                 ) : (
-                  <ImageIcon className="h-3.5 w-3.5 mr-1" />
+                  <Upload className="h-3.5 w-3.5 mr-1" />
                 )}
                 Replace
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setLibraryOpen(true)}
+                disabled={uploading}
+              >
+                <Images className="h-3.5 w-3.5 mr-1" />
+                From Library
               </Button>
               <Button
                 variant="outline"
@@ -1300,10 +1317,38 @@ function WelcomePageEditor({
             ) : (
               <ImageIcon className="h-6 w-6" />
             )}
-            <span className="text-sm">
-              {uploading ? "Uploading…" : "Upload logo"}
-            </span>
+            <span className="text-sm">Add a logo</span>
           </button>
+        )}
+        {!wp.logo_url && (
+          <div className="mt-3 flex gap-2">
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              className="flex-1"
+              disabled={uploading}
+              onClick={() => fileInputRef.current?.click()}
+            >
+              {uploading ? (
+                <Loader2 className="h-4 w-4 mr-1.5 animate-spin" />
+              ) : (
+                <Upload className="h-4 w-4 mr-1.5" />
+              )}
+              {uploading ? "Uploading…" : "Upload Image"}
+            </Button>
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              className="flex-1"
+              disabled={uploading}
+              onClick={() => setLibraryOpen(true)}
+            >
+              <Images className="h-4 w-4 mr-1.5" />
+              From Library
+            </Button>
+          </div>
         )}
         <input
           ref={fileInputRef}
@@ -1311,6 +1356,11 @@ function WelcomePageEditor({
           accept="image/*"
           className="hidden"
           onChange={handleLogoUpload}
+        />
+        <ImageLibraryModal
+          open={libraryOpen}
+          onClose={() => setLibraryOpen(false)}
+          onSelect={selectLogoFromLibrary}
         />
       </div>
 
