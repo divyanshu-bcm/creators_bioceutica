@@ -5,6 +5,105 @@ import { fireWebhook } from "@/lib/webhook";
 
 const PHONE_PREFIX = "+39";
 
+type SubmissionData = Record<string, unknown>;
+
+type SubFieldForWebhook = {
+  id: string;
+  label?: string;
+};
+
+function isPlainRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null && !Array.isArray(value);
+}
+
+function createUniqueKey(base: string, usedKeys: Set<string>): string {
+  const normalizedBase = base.trim() || "field";
+  if (!usedKeys.has(normalizedBase)) {
+    usedKeys.add(normalizedBase);
+    return normalizedBase;
+  }
+
+  let suffix = 2;
+  let candidate = `${normalizedBase} (${suffix})`;
+  while (usedKeys.has(candidate)) {
+    suffix += 1;
+    candidate = `${normalizedBase} (${suffix})`;
+  }
+  usedKeys.add(candidate);
+  return candidate;
+}
+
+function mapGroupedValueBySubFieldLabels(
+  value: unknown,
+  subFields: SubFieldForWebhook[],
+): unknown {
+  if (!isPlainRecord(value)) return value;
+
+  const labelById = new Map(
+    subFields.map((subField) => [subField.id, subField.label?.trim()]),
+  );
+  const usedKeys = new Set<string>();
+  const mapped: Record<string, unknown> = {};
+
+  for (const [subFieldId, subValue] of Object.entries(value)) {
+    const candidateLabel = labelById.get(subFieldId) || subFieldId;
+    const mappedKey = createUniqueKey(candidateLabel, usedKeys);
+    mapped[mappedKey] = subValue;
+  }
+
+  return mapped;
+}
+
+function buildWebhookDataFromLabels(
+  data: SubmissionData,
+  fields: Array<{
+    id: string;
+    label: string | null;
+    field_type: string;
+    validation: Record<string, unknown> | null;
+  }>,
+): SubmissionData {
+  const usedTopLevelKeys = new Set<string>();
+  const mappedData: SubmissionData = {};
+  const knownFieldIds = new Set(fields.map((field) => field.id));
+
+  for (const field of fields) {
+    if (!(field.id in data)) continue;
+
+    const fieldKey = createUniqueKey(
+      field.label?.trim() || field.id,
+      usedTopLevelKeys,
+    );
+    const rawValue = data[field.id];
+    const hasSubFields = isPlainRecord(field.validation)
+      ? (field.validation.sub_fields as SubFieldForWebhook[] | undefined)
+      : undefined;
+
+    if (
+      (field.field_type === "group" ||
+        field.field_type === "name_group" ||
+        field.field_type === "address_group") &&
+      Array.isArray(hasSubFields)
+    ) {
+      mappedData[fieldKey] = mapGroupedValueBySubFieldLabels(
+        rawValue,
+        hasSubFields,
+      );
+      continue;
+    }
+
+    mappedData[fieldKey] = rawValue;
+  }
+
+  for (const [fieldId, value] of Object.entries(data)) {
+    if (knownFieldIds.has(fieldId)) continue;
+    const key = createUniqueKey(fieldId, usedTopLevelKeys);
+    mappedData[key] = value;
+  }
+
+  return mappedData;
+}
+
 function normalizePhoneValue(value: unknown): string {
   const raw = String(value ?? "").trim();
   if (!raw) return "";
@@ -50,16 +149,19 @@ export async function POST(request: Request) {
     );
   }
 
-  const { data: phoneFields } = await supabase
+  const { data: fields } = await supabase
     .from("form_fields")
-    .select("id, field_type")
+    .select("id, field_type, label, validation")
     .eq("form_id", formId)
-    .in("field_type", ["phone", "email"])
     .eq("is_draft", false)
     .eq("pending_delete", false);
 
-  const normalizedData = { ...(data as Record<string, unknown>) };
-  for (const field of phoneFields ?? []) {
+  const normalizedData = { ...(data as SubmissionData) };
+  for (const field of fields ?? []) {
+    if (field.field_type !== "phone" && field.field_type !== "email") {
+      continue;
+    }
+
     const currentValue = normalizedData[field.id];
 
     if (field.field_type === "email") {
@@ -85,6 +187,8 @@ export async function POST(request: Request) {
     }
   }
 
+  const webhookData = buildWebhookDataFromLabels(normalizedData, fields ?? []);
+
   // Extract request metadata
   const ip = request.headers.get("x-forwarded-for") ?? null;
   const userAgent = request.headers.get("user-agent") ?? null;
@@ -94,7 +198,7 @@ export async function POST(request: Request) {
     formId,
     formTitle: form.title,
     submittedAt: new Date().toISOString(),
-    data: normalizedData,
+    data: webhookData,
   };
   const webhookResult = form.webhook_url
     ? await fireWebhook(form.webhook_url, webhookPayload)
