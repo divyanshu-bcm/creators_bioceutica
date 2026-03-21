@@ -16,13 +16,6 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
-import {
-  Select,
-  SelectTrigger,
-  SelectValue,
-  SelectContent,
-  SelectItem,
-} from "@/components/ui/select";
 import { Copyright } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { sanitizeRichTextHtml } from "@/lib/rich-text";
@@ -706,23 +699,27 @@ function FieldRenderer({ field, value, onChange, error }: FieldRendererProps) {
                 </Label>
               )}
               {sf.input_type === "dropdown" ? (
-                <Select
-                  value={groupValue[sf.id] ?? ""}
-                  onValueChange={(v) => onChange({ ...groupValue, [sf.id]: v })}
+                <select
+                  value={String(groupValue[sf.id] ?? "")}
+                  onChange={(e) =>
+                    onChange({ ...groupValue, [sf.id]: e.target.value })
+                  }
+                  className={cn(
+                    "flex h-10 w-full items-center rounded-md border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900",
+                    "focus:outline-none focus:ring-2 focus:ring-slate-400 focus:border-transparent",
+                    inputClass,
+                  )}
+                  style={styleCss}
                 >
-                  <SelectTrigger className={inputClass} style={styleCss}>
-                    <SelectValue
-                      placeholder={sf.placeholder || "Select\u2026"}
-                    />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {(sf.options ?? []).map((opt) => (
-                      <SelectItem key={opt} value={opt}>
-                        {opt}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                  <option value="" disabled>
+                    {sf.placeholder || "Select..."}
+                  </option>
+                  {(sf.options ?? []).map((opt) => (
+                    <option key={opt} value={opt}>
+                      {opt}
+                    </option>
+                  ))}
+                </select>
               ) : (
                 <Input
                   value={groupValue[sf.id] ?? ""}
@@ -905,25 +902,26 @@ function FieldRenderer({ field, value, onChange, error }: FieldRendererProps) {
       return (
         <div className="space-y-1">
           {label}
-          <Select
+          <select
+            id={field.id}
             value={String(value ?? "")}
-            onValueChange={(v) => onChange(v)}
+            onChange={(e) => onChange(e.target.value)}
+            className={cn(
+              "flex h-10 w-full items-center rounded-md border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900",
+              "focus:outline-none focus:ring-2 focus:ring-slate-400 focus:border-transparent",
+              inputClass,
+            )}
+            style={styleCss}
           >
-            <SelectTrigger
-              id={field.id}
-              className={inputClass}
-              style={styleCss}
-            >
-              <SelectValue placeholder="Select an option…" />
-            </SelectTrigger>
-            <SelectContent>
-              {(field.options ?? []).map((opt) => (
-                <SelectItem key={opt} value={opt}>
-                  {opt}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+            <option value="" disabled>
+              Select an option...
+            </option>
+            {(field.options ?? []).map((opt) => (
+              <option key={opt} value={opt}>
+                {opt}
+              </option>
+            ))}
+          </select>
           {helperText}
           {errorText}
         </div>

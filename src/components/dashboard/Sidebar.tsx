@@ -8,6 +8,7 @@ import { createClient } from "@/lib/supabase/client";
 import { cn } from "@/lib/utils";
 import {
   FileText,
+  BookOpen,
   Users,
   LogOut,
   ChevronLeft,
@@ -68,8 +69,10 @@ export function Sidebar({ userRole, userName, userEmail }: SidebarProps) {
     { label: "Analytics", href: "/dashboard/analytics", icon: ChartPie },
   ];
 
+  const forceExpanded = pathname?.startsWith("/dashboard/docs") ?? false;
+
   // Before mount, render expanded to avoid layout shift
-  const isCollapsed = mounted ? collapsed : false;
+  const isCollapsed = mounted ? (forceExpanded ? false : collapsed) : false;
 
   return (
     <aside
@@ -140,6 +143,21 @@ export function Sidebar({ userRole, userName, userEmail }: SidebarProps) {
 
       {/* Footer: user info + sign out */}
       <div className="border-t border-slate-200 dark:border-slate-800 p-2 space-y-1">
+        <Link
+          href="/dashboard/docs"
+          title={isCollapsed ? "Docs" : undefined}
+          className={cn(
+            "w-full flex items-center gap-3 px-2 py-2 rounded-lg text-sm font-medium transition-colors whitespace-nowrap",
+            pathname === "/dashboard/docs"
+              ? "bg-slate-900 text-white dark:bg-slate-100 dark:text-slate-900"
+              : "text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-slate-900 dark:hover:text-slate-100",
+            isCollapsed && "justify-center",
+          )}
+        >
+          <BookOpen className="h-4 w-4 shrink-0" />
+          {!isCollapsed && <span className="truncate">Docs</span>}
+        </Link>
+
         {!isCollapsed && (
           <div className="px-2 py-1.5">
             <p className="text-sm font-medium text-slate-800 dark:text-slate-200 truncate leading-tight">
