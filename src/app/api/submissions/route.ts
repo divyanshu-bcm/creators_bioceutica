@@ -193,18 +193,7 @@ export async function POST(request: Request) {
   const ip = request.headers.get("x-forwarded-for") ?? null;
   const userAgent = request.headers.get("user-agent") ?? null;
 
-  // Fire webhook (if configured)
-  const webhookPayload = {
-    formId,
-    formTitle: form.title,
-    submittedAt: new Date().toISOString(),
-    data: webhookData,
-  };
-  const webhookResult = form.webhook_url
-    ? await fireWebhook(form.webhook_url, webhookPayload)
-    : { ok: false, status: null, error: null };
-
-  // Save submission
+  // Save submission first so we have the submission ID for the webhook
   const { data: submission, error } = await supabase
     .from("form_submissions")
     .insert({
@@ -212,14 +201,37 @@ export async function POST(request: Request) {
       data: normalizedData,
       ip_address: ip,
       user_agent: userAgent,
-      webhook_sent: webhookResult.ok,
-      webhook_error: webhookResult.ok ? null : webhookResult.error,
+      webhook_sent: false,
+      webhook_error: null,
     })
     .select()
     .single();
 
   if (error)
     return NextResponse.json({ error: error.message }, { status: 500 });
+
+  // Fire webhook (if configured)
+  const webhookPayload = {
+    formId,
+    formTitle: form.title,
+    submissionId: submission.id,
+    submittedAt: new Date().toISOString(),
+    data: webhookData,
+  };
+  const webhookResult = form.webhook_url
+    ? await fireWebhook(form.webhook_url, webhookPayload)
+    : { ok: false, status: null, error: null };
+
+  // Update submission with webhook result
+  if (form.webhook_url) {
+    await supabase
+      .from("form_submissions")
+      .update({
+        webhook_sent: webhookResult.ok,
+        webhook_error: webhookResult.ok ? null : webhookResult.error,
+      })
+      .eq("id", submission.id);
+  }
 
   return NextResponse.json({ ok: true, id: submission.id }, { status: 201 });
 }
