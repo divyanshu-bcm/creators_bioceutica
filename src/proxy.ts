@@ -21,7 +21,8 @@ function isPublicApiRoute(request: NextRequest): boolean {
     (pathname.startsWith("/api/submissions") && m === "POST") ||
     (pathname.startsWith("/api/forms/") &&
       pathname.endsWith("/public") &&
-      m === "GET")
+      m === "GET") ||
+    (pathname === "/api/contracts/webhook" && m === "POST")
   );
 }
 

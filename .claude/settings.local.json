@@ -1,0 +1,22 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(ls:*)",
+      "Bash(xargs -I {} sh -c 'echo \"=== {} ===\" && head -20 {}')",
+      "WebFetch(domain:developers.pandadoc.com)",
+      "WebFetch(domain:api.pandadoc.com)",
+      "WebFetch(domain:raw.githubusercontent.com)",
+      "Bash(curl -s \"https://api.github.com/repos/PandaDoc/pandadoc-api-node-client/contents/\")",
+      "Bash(curl -s \"https://api.github.com/search/repositories?q=pandadoc+api+openapi&sort=stars\")",
+      "Bash(python3 -c \"import sys,json; data=json.load\\(sys.stdin\\); [print\\(r['full_name'], r['html_url']\\) for r in data.get\\('items',[]\\)]\")",
+      "Bash(curl:*)",
+      "Bash(python3 -c \"import sys,json; [print\\(f['name'], f['download_url']\\) for f in json.load\\(sys.stdin\\) if isinstance\\(f,dict\\)]\")",
+      "Bash(python3 -c \" import sys, json items = json.load\\(sys.stdin\\) for f in items: if isinstance\\(f, dict\\): print\\(f['name'], f.get\\('download_url',''\\)\\) \")",
+      "Bash(pnpm build:*)",
+      "WebSearch",
+      "WebFetch(domain:www.docuseal.com)",
+      "Bash(pnpm lint *)",
+      "Bash(pnpm exec *)"
+    ]
+  }
+}

@@ -203,3 +203,49 @@ create policy "service role full access to campaigns"
   on public.creator_campaigns for all
   using (auth.role() = 'service_role')
   with check (auth.role() = 'service_role');
+
+-- ============================================================
+-- 16. Contracts — DocuSeal contract tracking
+-- ============================================================
+-- Tracks every contract sent via DocuSeal so we can display
+-- status history in the dashboard.
+create table if not exists public.contracts (
+  id                     uuid primary key default gen_random_uuid(),
+  docuseal_submission_id text not null unique,
+  template_id            text not null,
+  template_name          text not null,
+  recipient_email        text not null,
+  recipient_name         text null,
+  document_name          text not null,
+  status                 text not null default 'pending',
+  sent_by                uuid references auth.users(id) on delete set null,
+  metadata               jsonb not null default '{}'::jsonb,
+  created_at             timestamptz default now(),
+  updated_at             timestamptz default now()
+);
+
+create index if not exists contracts_docuseal_submission_id_idx on public.contracts(docuseal_submission_id);
+create index if not exists contracts_status_idx on public.contracts(status);
+create index if not exists contracts_sent_by_idx on public.contracts(sent_by);
+
+-- Migration: rename pandadoc_id -> docuseal_submission_id (only if you ran the older PandaDoc version)
+-- Run this once if your contracts table already has the old column name:
+--
+--   alter table public.contracts rename column pandadoc_id to docuseal_submission_id;
+--   alter index if exists contracts_pandadoc_id_idx rename to contracts_docuseal_submission_id_idx;
+--   alter table public.contracts alter column status set default 'pending';
+
+-- ============================================================
+-- 17. Contracts — multi-party signing support
+-- ============================================================
+-- Tracks the logged-in sender's own role/slug so we can surface
+-- an in-app "Sign Now" link, plus the full cast of submitters
+-- (roles, emails, slugs, per-party status) for card rendering.
+alter table public.contracts
+  add column if not exists our_role       text,
+  add column if not exists our_slug       text,
+  add column if not exists our_embed_src  text,
+  add column if not exists our_signed_at  timestamptz,
+  add column if not exists submitters     jsonb not null default '[]'::jsonb;
+
+create index if not exists contracts_our_slug_idx on public.contracts(our_slug);

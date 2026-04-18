@@ -1,0 +1,432 @@
+{
+  "version": "1.0.0",
+  "lastScanned": 1776536737561,
+  "projectRoot": "D:\\Pehe\\bioceutica_creators",
+  "techStack": {
+    "languages": [
+      {
+        "name": "JavaScript/TypeScript",
+        "version": null,
+        "confidence": "high",
+        "markers": [
+          "package.json"
+        ]
+      },
+      {
+        "name": "TypeScript",
+        "version": null,
+        "confidence": "high",
+        "markers": [
+          "tsconfig.json"
+        ]
+      }
+    ],
+    "frameworks": [
+      {
+        "name": "next",
+        "version": "16.1.6",
+        "category": "fullstack"
+      },
+      {
+        "name": "react",
+        "version": "19.2.3",
+        "category": "frontend"
+      },
+      {
+        "name": "react-dom",
+        "version": "19.2.3",
+        "category": "frontend"
+      }
+    ],
+    "packageManager": "pnpm",
+    "runtime": null
+  },
+  "build": {
+    "buildCommand": "pnpm build",
+    "testCommand": null,
+    "lintCommand": "pnpm lint",
+    "devCommand": "pnpm dev",
+    "scripts": {
+      "dev": "next dev",
+      "build": "next build",
+      "start": "next start",
+      "lint": "eslint"
+    }
+  },
+  "conventions": {
+    "namingStyle": "camelCase",
+    "importStyle": "ES modules",
+    "testPattern": null,
+    "fileOrganization": "type-based"
+  },
+  "structure": {
+    "isMonorepo": false,
+    "workspaces": [],
+    "mainDirectories": [
+      "public",
+      "src"
+    ],
+    "gitBranches": null
+  },
+  "customNotes": [],
+  "directoryMap": {
+    "public": {
+      "path": "public",
+      "purpose": "Public files",
+      "fileCount": 6,
+      "lastAccessed": 1776536737461,
+      "keyFiles": [
+        "file.svg",
+        "globe.svg",
+        "next.svg",
+        "Small_logo.svg",
+        "vercel.svg"
+      ]
+    },
+    "src": {
+      "path": "src",
+      "purpose": "Source code",
+      "fileCount": 1,
+      "lastAccessed": 1776536737463,
+      "keyFiles": [
+        "proxy.ts"
+      ]
+    },
+    "src\\app": {
+      "path": "src\\app",
+      "purpose": "Application code",
+      "fileCount": 4,
+      "lastAccessed": 1776536737480,
+      "keyFiles": [
+        "favicon.ico",
+        "globals.css",
+        "layout.tsx"
+      ]
+    },
+    "src\\components": {
+      "path": "src\\components",
+      "purpose": "UI components",
+      "fileCount": 3,
+      "lastAccessed": 1776536737481,
+      "keyFiles": [
+        "AcceptInvitationForm.tsx",
+        "ThemeProvider.tsx",
+        "ThemeToggle.tsx"
+      ]
+    },
+    "src\\lib": {
+      "path": "src\\lib",
+      "purpose": "Library code",
+      "fileCount": 10,
+      "lastAccessed": 1776536737487,
+      "keyFiles": [
+        "creators-config.ts",
+        "form-activity.ts",
+        "predefined-groups.ts"
+      ]
+    }
+  },
+  "hotPaths": [
+    {
+      "path": "src\\app\\dashboard\\contracts\\page.tsx",
+      "accessCount": 14,
+      "lastAccessed": 1776538998119,
+      "type": "file"
+    },
+    {
+      "path": "src\\app\\api\\contracts\\send\\route.ts",
+      "accessCount": 11,
+      "lastAccessed": 1776538880473,
+      "type": "file"
+    },
+    {
+      "path": "supabase-setup.sql",
+      "accessCount": 10,
+      "lastAccessed": 1776538845465,
+      "type": "file"
+    },
+    {
+      "path": "src\\lib\\types.ts",
+      "accessCount": 8,
+      "lastAccessed": 1776538830965,
+      "type": "file"
+    },
+    {
+      "path": "src\\proxy.ts",
+      "accessCount": 5,
+      "lastAccessed": 1776098599623,
+      "type": "file"
+    },
+    {
+      "path": "src\\components\\dashboard\\Sidebar.tsx",
+      "accessCount": 4,
+      "lastAccessed": 1776098662700,
+      "type": "file"
+    },
+    {
+      "path": ".env.local",
+      "accessCount": 4,
+      "lastAccessed": 1776164942722,
+      "type": "file"
+    },
+    {
+      "path": "src\\app\\api\\contracts\\templates\\route.ts",
+      "accessCount": 4,
+      "lastAccessed": 1776537202989,
+      "type": "file"
+    },
+    {
+      "path": "src\\app\\api\\contracts\\webhook\\route.ts",
+      "accessCount": 4,
+      "lastAccessed": 1776538898421,
+      "type": "file"
+    },
+    {
+      "path": "",
+      "accessCount": 3,
+      "lastAccessed": 1776096082470,
+      "type": "directory"
+    },
+    {
+      "path": "src\\lib\\supabase\\admin.ts",
+      "accessCount": 3,
+      "lastAccessed": 1776538531379,
+      "type": "file"
+    },
+    {
+      "path": "next.config.ts",
+      "accessCount": 2,
+      "lastAccessed": 1776096083102,
+      "type": "file"
+    },
+    {
+      "path": "src\\app\\dashboard\\products\\page.tsx",
+      "accessCount": 2,
+      "lastAccessed": 1776098542002,
+      "type": "file"
+    },
+    {
+      "path": "src\\components\\ui\\tabs.tsx",
+      "accessCount": 2,
+      "lastAccessed": 1776098542451,
+      "type": "file"
+    },
+    {
+      "path": "src\\components\\ui\\dialog.tsx",
+      "accessCount": 2,
+      "lastAccessed": 1776098542952,
+      "type": "file"
+    },
+    {
+      "path": "src\\components\\ui\\badge.tsx",
+      "accessCount": 2,
+      "lastAccessed": 1776098543528,
+      "type": "file"
+    },
+    {
+      "path": "src\\components\\ui\\card.tsx",
+      "accessCount": 2,
+      "lastAccessed": 1776098555674,
+      "type": "file"
+    },
+    {
+      "path": "src\\lib\\supabase\\server.ts",
+      "accessCount": 2,
+      "lastAccessed": 1776098784158,
+      "type": "file"
+    },
+    {
+      "path": "src\\app\\api\\contracts\\route.ts",
+      "accessCount": 2,
+      "lastAccessed": 1776537180976,
+      "type": "file"
+    },
+    {
+      "path": "src",
+      "accessCount": 2,
+      "lastAccessed": 1776538905450,
+      "type": "directory"
+    },
+    {
+      "path": "src\\app\\dashboard\\layout.tsx",
+      "accessCount": 2,
+      "lastAccessed": 1776538910401,
+      "type": "file"
+    },
+    {
+      "path": "package.json",
+      "accessCount": 1,
+      "lastAccessed": 1776095945923,
+      "type": "file"
+    },
+    {
+      "path": "tsconfig.json",
+      "accessCount": 1,
+      "lastAccessed": 1776095948774,
+      "type": "file"
+    },
+    {
+      "path": "README.md",
+      "accessCount": 1,
+      "lastAccessed": 1776095949402,
+      "type": "file"
+    },
+    {
+      "path": "components.json",
+      "accessCount": 1,
+      "lastAccessed": 1776095949601,
+      "type": "file"
+    },
+    {
+      "path": "AGENTS.md",
+      "accessCount": 1,
+      "lastAccessed": 1776095949802,
+      "type": "file"
+    },
+    {
+      "path": "eslint.config.mjs",
+      "accessCount": 1,
+      "lastAccessed": 1776095962523,
+      "type": "file"
+    },
+    {
+      "path": "postcss.config.mjs",
+      "accessCount": 1,
+      "lastAccessed": 1776095962560,
+      "type": "file"
+    },
+    {
+      "path": "src\\app\\globals.css",
+      "accessCount": 1,
+      "lastAccessed": 1776095969532,
+      "type": "file"
+    },
+    {
+      "path": "src\\app\\layout.tsx",
+      "accessCount": 1,
+      "lastAccessed": 1776095969644,
+      "type": "file"
+    },
+    {
+      "path": "src\\lib\\supabase\\client.ts",
+      "accessCount": 1,
+      "lastAccessed": 1776095984164,
+      "type": "file"
+    },
+    {
+      "path": "src\\components\\ThemeProvider.tsx",
+      "accessCount": 1,
+      "lastAccessed": 1776095988487,
+      "type": "file"
+    },
+    {
+      "path": "src\\app\\page.tsx",
+      "accessCount": 1,
+      "lastAccessed": 1776095995644,
+      "type": "file"
+    },
+    {
+      "path": "src\\lib\\form-activity.ts",
+      "accessCount": 1,
+      "lastAccessed": 1776095999522,
+      "type": "file"
+    },
+    {
+      "path": "src\\lib\\webhook.ts",
+      "accessCount": 1,
+      "lastAccessed": 1776096002903,
+      "type": "file"
+    },
+    {
+      "path": "CLAUDE.md",
+      "accessCount": 1,
+      "lastAccessed": 1776096112842,
+      "type": "file"
+    },
+    {
+      "path": "src\\app\\dashboard\\page.tsx",
+      "accessCount": 1,
+      "lastAccessed": 1776098463312,
+      "type": "file"
+    },
+    {
+      "path": "src\\app\\dashboard\\creators\\page.tsx",
+      "accessCount": 1,
+      "lastAccessed": 1776098467442,
+      "type": "file"
+    },
+    {
+      "path": "src\\components\\ui\\table.tsx",
+      "accessCount": 1,
+      "lastAccessed": 1776098472371,
+      "type": "file"
+    },
+    {
+      "path": "src\\components\\ui\\button.tsx",
+      "accessCount": 1,
+      "lastAccessed": 1776098472668,
+      "type": "file"
+    },
+    {
+      "path": "src\\app\\api\\products\\route.ts",
+      "accessCount": 1,
+      "lastAccessed": 1776098473059,
+      "type": "file"
+    },
+    {
+      "path": "src\\app\\api\\creators\\route.ts",
+      "accessCount": 1,
+      "lastAccessed": 1776098473141,
+      "type": "file"
+    },
+    {
+      "path": "src\\lib\\prospects-config.ts",
+      "accessCount": 1,
+      "lastAccessed": 1776098477085,
+      "type": "file"
+    },
+    {
+      "path": "src\\app\\dashboard\\forms\\[formId]\\page.tsx",
+      "accessCount": 1,
+      "lastAccessed": 1776098477140,
+      "type": "file"
+    },
+    {
+      "path": "src\\components\\dashboard\\ProspectListView.tsx",
+      "accessCount": 1,
+      "lastAccessed": 1776098477381,
+      "type": "file"
+    },
+    {
+      "path": "src\\components\\dashboard\\CreatorsTabNav.tsx",
+      "accessCount": 1,
+      "lastAccessed": 1776098480827,
+      "type": "file"
+    },
+    {
+      "path": "src\\components\\dashboard\\ProspectCard.tsx",
+      "accessCount": 1,
+      "lastAccessed": 1776098480930,
+      "type": "file"
+    },
+    {
+      "path": "src\\lib\\creators-config.ts",
+      "accessCount": 1,
+      "lastAccessed": 1776098484544,
+      "type": "file"
+    },
+    {
+      "path": "src\\app\\dashboard\\forms\\[formId]\\responses\\page.tsx",
+      "accessCount": 1,
+      "lastAccessed": 1776098484896,
+      "type": "file"
+    },
+    {
+      "path": "src\\app\\api\\contracts\\templates\\[id]\\route.ts",
+      "accessCount": 1,
+      "lastAccessed": 1776538856482,
+      "type": "file"
+    }
+  ],
+  "userDirectives": []
+}

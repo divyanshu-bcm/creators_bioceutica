@@ -219,6 +219,60 @@ export interface CreatorCampaign {
 }
 // ──────────────────────────────────────────────
 
+// ─── Contracts (DocuSeal) ─────────────────────
+export type ContractStatus =
+  | "pending"
+  | "sent"
+  | "opened"
+  | "completed"
+  | "declined"
+  | "expired";
+
+export interface ContractSubmitter {
+  role: string;
+  email: string;
+  name: string | null;
+  slug: string | null;
+  embed_src: string | null;
+  status: string | null;
+  completed_at: string | null;
+}
+
+export interface Contract {
+  id: string;
+  docuseal_submission_id: string;
+  template_id: string;
+  template_name: string;
+  recipient_email: string;
+  recipient_name: string | null;
+  document_name: string;
+  status: ContractStatus;
+  sent_by: string | null;
+  our_role: string | null;
+  our_slug: string | null;
+  our_embed_src: string | null;
+  our_signed_at: string | null;
+  submitters: ContractSubmitter[];
+  metadata: Record<string, unknown>;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface DocuSealTemplate {
+  id: number;
+  slug: string;
+  name: string;
+  folder_name: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface DocuSealTemplateRole {
+  name: string;
+  uuid: string;
+}
+// ──────────────────────────────────────────────
+
 // sessionStorage shape for multi-step progress
 export interface FormProgressState {
   currentStep: number;

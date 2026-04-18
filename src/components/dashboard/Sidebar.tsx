@@ -19,6 +19,7 @@ import {
   MessageSquare,
   Package,
   ChartPie,
+  FileSignature,
 } from "lucide-react";
 
 interface SidebarProps {
@@ -63,6 +64,7 @@ export function Sidebar({ userRole, userName, userEmail }: SidebarProps) {
     { label: "Prospects", href: "/dashboard/prospects", icon: UserSearch },
     { label: "Creators", href: "/dashboard/creators", icon: Video },
     { label: "Content", href: "/dashboard/content", icon: Clapperboard },
+    { label: "Contracts", href: "/dashboard/contracts", icon: FileSignature },
     ...(userRole === "admin"
       ? [{ label: "Users", href: "/dashboard/users", icon: Users }]
       : []),
