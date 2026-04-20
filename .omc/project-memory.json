@@ -1,6 +1,6 @@
 {
   "version": "1.0.0",
-  "lastScanned": 1776536737561,
+  "lastScanned": 1776691392993,
   "projectRoot": "D:\\Pehe\\bioceutica_creators",
   "techStack": {
     "languages": [
@@ -74,7 +74,7 @@
       "path": "public",
       "purpose": "Public files",
       "fileCount": 6,
-      "lastAccessed": 1776536737461,
+      "lastAccessed": 1776691392919,
       "keyFiles": [
         "file.svg",
         "globe.svg",
@@ -87,7 +87,7 @@
       "path": "src",
       "purpose": "Source code",
       "fileCount": 1,
-      "lastAccessed": 1776536737463,
+      "lastAccessed": 1776691392920,
       "keyFiles": [
         "proxy.ts"
       ]
@@ -96,7 +96,7 @@
       "path": "src\\app",
       "purpose": "Application code",
       "fileCount": 4,
-      "lastAccessed": 1776536737480,
+      "lastAccessed": 1776691392948,
       "keyFiles": [
         "favicon.ico",
         "globals.css",
@@ -107,7 +107,7 @@
       "path": "src\\components",
       "purpose": "UI components",
       "fileCount": 3,
-      "lastAccessed": 1776536737481,
+      "lastAccessed": 1776691392949,
       "keyFiles": [
         "AcceptInvitationForm.tsx",
         "ThemeProvider.tsx",
@@ -118,7 +118,7 @@
       "path": "src\\lib",
       "purpose": "Library code",
       "fileCount": 10,
-      "lastAccessed": 1776536737487,
+      "lastAccessed": 1776691392949,
       "keyFiles": [
         "creators-config.ts",
         "form-activity.ts",
@@ -158,6 +158,12 @@
       "type": "file"
     },
     {
+      "path": "src\\app\\layout.tsx",
+      "accessCount": 5,
+      "lastAccessed": 1776691481968,
+      "type": "file"
+    },
+    {
       "path": "src\\components\\dashboard\\Sidebar.tsx",
       "accessCount": 4,
       "lastAccessed": 1776098662700,
@@ -182,6 +188,12 @@
       "type": "file"
     },
     {
+      "path": "src\\app\\globals.css",
+      "accessCount": 4,
+      "lastAccessed": 1776691491450,
+      "type": "file"
+    },
+    {
       "path": "",
       "accessCount": 3,
       "lastAccessed": 1776096082470,
@@ -192,6 +204,12 @@
       "accessCount": 3,
       "lastAccessed": 1776538531379,
       "type": "file"
+    },
+    {
+      "path": "src",
+      "accessCount": 3,
+      "lastAccessed": 1776691502826,
+      "type": "directory"
     },
     {
       "path": "next.config.ts",
@@ -242,12 +260,6 @@
       "type": "file"
     },
     {
-      "path": "src",
-      "accessCount": 2,
-      "lastAccessed": 1776538905450,
-      "type": "directory"
-    },
-    {
       "path": "src\\app\\dashboard\\layout.tsx",
       "accessCount": 2,
       "lastAccessed": 1776538910401,
@@ -293,18 +305,6 @@
       "path": "postcss.config.mjs",
       "accessCount": 1,
       "lastAccessed": 1776095962560,
-      "type": "file"
-    },
-    {
-      "path": "src\\app\\globals.css",
-      "accessCount": 1,
-      "lastAccessed": 1776095969532,
-      "type": "file"
-    },
-    {
-      "path": "src\\app\\layout.tsx",
-      "accessCount": 1,
-      "lastAccessed": 1776095969644,
       "type": "file"
     },
     {

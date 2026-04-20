@@ -3,6 +3,10 @@
 /* Enable class-based dark mode */
 @custom-variant dark (&:where(.dark, .dark *));
 
+@theme {
+  --font-sans: var(--font-poppins), system-ui, -apple-system, sans-serif;
+}
+
 :root {
   --background: #ffffff;
   --foreground: #0f172a;
@@ -21,6 +25,7 @@ body {
   background: var(--background);
   color: var(--foreground);
   font-family:
+    var(--font-poppins),
     system-ui,
     -apple-system,
     sans-serif;
