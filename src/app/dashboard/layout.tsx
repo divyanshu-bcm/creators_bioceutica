@@ -28,13 +28,13 @@ export default async function DashboardLayout({
   const userEmail = profile?.email ?? user.email ?? "";
 
   return (
-    <div className="flex h-screen overflow-hidden bg-slate-50 dark:bg-slate-950">
+    <div className="bc-aurora flex h-screen overflow-hidden">
       <Sidebar userRole={userRole} userName={userName} userEmail={userEmail} />
-      <div className="flex-1 flex flex-col min-w-0 h-full">
-        <header className="bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800 h-14 flex items-center justify-end px-6 shrink-0">
+      <div className="flex-1 flex flex-col min-w-0 h-full relative">
+        <div className="absolute top-3 right-4 z-20">
           <ThemeToggle />
-        </header>
-        <main className="flex-1 p-6 overflow-auto">{children}</main>
+        </div>
+        <main className="flex-1 px-8 pt-8 pb-8 overflow-auto bc-scroll">{children}</main>
       </div>
     </div>
   );

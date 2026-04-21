@@ -1,36 +1,156 @@
 @import "tailwindcss";
 
-/* Enable class-based dark mode */
 @custom-variant dark (&:where(.dark, .dark *));
 
 @theme {
-  --font-sans: var(--font-poppins), system-ui, -apple-system, sans-serif;
+  --font-sans: var(--font-aeonik), "Inter", system-ui, -apple-system, sans-serif;
+  --font-display: var(--font-gt-super), "Fraunces", "GT Super Display", Georgia, serif;
+
+  /* Bioceutica brand */
+  --color-teal-50:  #E6EEEF;
+  --color-teal-100: #CCDDDF;
+  --color-teal-200: #99BBBE;
+  --color-teal-300: #66999E;
+  --color-teal-400: #33777D;
+  --color-teal-500: #1A656B;
+  --color-teal-600: #006573;
+  --color-teal-700: #004D58;
+  --color-teal-800: #003D45;
+  --color-teal-900: #002A30;
+  --color-teal-950: #001A1E;
+
+  --color-orange-50:  #FEEDE7;
+  --color-orange-100: #FDD9CC;
+  --color-orange-200: #FBB39A;
+  --color-orange-300: #F98D67;
+  --color-orange-400: #F77646;
+  --color-orange-500: #E25E2E;
+
+  --color-sage-50:  #F1F3EF;
+  --color-sage-100: #D6DAD3;
+  --color-sage-200: #BEC5BA;
+  --color-sage-300: #A1AD97;
+  --color-sage-400: #889479;
+  --color-sage-500: #6F7B62;
+
+  --color-cream-50:  #FBF8F4;
+  --color-cream-100: #F7F4ED;
+  --color-cream-200: #F0EAE1;
+  --color-cream-300: #E5DCCF;
+
+  --color-neutral-50:  #FAFAF8;
+  --color-neutral-100: #F4F2EE;
+  --color-neutral-200: #E8E5DF;
+  --color-neutral-300: #D2CEC5;
+  --color-neutral-400: #9C978C;
+  --color-neutral-500: #706C63;
+  --color-neutral-600: #4A4740;
+  --color-neutral-700: #2E2C27;
+  --color-neutral-800: #1C1B18;
+  --color-neutral-900: #0F0E0C;
 }
 
 :root {
-  --background: #ffffff;
-  --foreground: #0f172a;
+  --background: #F7F4ED;
+  --foreground: #002A30;
+  --surface: rgba(255, 255, 255, 0.62);
+  --surface-strong: rgba(255, 255, 255, 0.82);
+  --surface-border: rgba(255, 255, 255, 0.55);
+  --surface-shadow: 0 1px 0 rgba(255, 255, 255, 0.6) inset,
+                    0 10px 40px -12px rgba(0, 61, 69, 0.18),
+                    0 4px 14px -8px rgba(0, 61, 69, 0.10);
+  --ring: rgba(0, 61, 69, 0.35);
 }
 
 .dark {
-  --background: #0f172a;
-  --foreground: #f1f5f9;
+  --background: #0A1A1D;
+  --foreground: #F0EAE1;
+  --surface: rgba(20, 38, 42, 0.55);
+  --surface-strong: rgba(20, 38, 42, 0.78);
+  --surface-border: rgba(161, 173, 151, 0.14);
+  --surface-shadow: 0 1px 0 rgba(255, 255, 255, 0.04) inset,
+                    0 10px 40px -12px rgba(0, 0, 0, 0.55),
+                    0 4px 14px -8px rgba(0, 0, 0, 0.4);
+  --ring: rgba(161, 173, 151, 0.45);
 }
 
-* {
-  box-sizing: border-box;
-}
+* { box-sizing: border-box; }
+
+html, body { min-height: 100%; }
 
 body {
   background: var(--background);
   color: var(--foreground);
-  font-family:
-    var(--font-poppins),
-    system-ui,
-    -apple-system,
-    sans-serif;
+  font-family: var(--font-sans);
   -webkit-font-smoothing: antialiased;
-  transition:
-    background-color 0.2s,
-    color 0.2s;
+  text-rendering: optimizeLegibility;
 }
+
+/* Brand aurora backdrop — soft cream wash with subtle teal/sage glow.
+   Stays in the spirit of "off-white dominant" while giving glass surfaces depth. */
+.bc-aurora {
+  position: relative;
+  isolation: isolate;
+  background-color: var(--background);
+}
+.bc-aurora::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  background-image:
+    radial-gradient(60rem 40rem at 8% -5%, rgba(0, 61, 69, 0.10), transparent 60%),
+    radial-gradient(48rem 36rem at 105% 15%, rgba(161, 173, 151, 0.22), transparent 60%),
+    radial-gradient(42rem 32rem at 50% 110%, rgba(247, 118, 70, 0.06), transparent 65%),
+    linear-gradient(180deg, rgba(240, 234, 225, 0.55), rgba(247, 244, 237, 0));
+  pointer-events: none;
+}
+.dark .bc-aurora::before {
+  background-image:
+    radial-gradient(60rem 40rem at 8% -5%, rgba(0, 101, 115, 0.35), transparent 60%),
+    radial-gradient(48rem 36rem at 105% 15%, rgba(161, 173, 151, 0.10), transparent 60%),
+    radial-gradient(42rem 32rem at 50% 110%, rgba(247, 118, 70, 0.06), transparent 65%);
+}
+
+/* Glassmorphism utilities */
+.glass {
+  background: var(--surface);
+  -webkit-backdrop-filter: blur(20px) saturate(160%);
+  backdrop-filter: blur(20px) saturate(160%);
+  border: 1px solid var(--surface-border);
+  box-shadow: var(--surface-shadow);
+}
+.glass-strong {
+  background: var(--surface-strong);
+  -webkit-backdrop-filter: blur(24px) saturate(170%);
+  backdrop-filter: blur(24px) saturate(170%);
+  border: 1px solid var(--surface-border);
+  box-shadow: var(--surface-shadow);
+}
+.glass-subtle {
+  background: rgba(255, 255, 255, 0.40);
+  -webkit-backdrop-filter: blur(14px) saturate(140%);
+  backdrop-filter: blur(14px) saturate(140%);
+  border: 1px solid rgba(255, 255, 255, 0.45);
+}
+.dark .glass-subtle {
+  background: rgba(20, 38, 42, 0.40);
+  border: 1px solid rgba(161, 173, 151, 0.10);
+}
+
+/* Display font helper */
+.font-display { font-family: var(--font-display); font-feature-settings: "ss01", "ss02"; }
+
+/* Subtle scrollbar in glass surfaces */
+.bc-scroll::-webkit-scrollbar { width: 10px; height: 10px; }
+.bc-scroll::-webkit-scrollbar-thumb {
+  background: rgba(0, 61, 69, 0.18);
+  border-radius: 9999px;
+  border: 2px solid transparent;
+  background-clip: padding-box;
+}
+.bc-scroll::-webkit-scrollbar-thumb:hover { background: rgba(0, 61, 69, 0.32); background-clip: padding-box; border: 2px solid transparent; }
+
+/* Selection */
+::selection { background: rgba(0, 61, 69, 0.18); color: #002A30; }
+.dark ::selection { background: rgba(161, 173, 151, 0.30); color: #F0EAE1; }

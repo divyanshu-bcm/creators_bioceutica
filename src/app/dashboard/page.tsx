@@ -21,44 +21,75 @@ export default async function DashboardPage() {
 
   if (error) {
     return (
-      <div className="text-red-600 bg-red-50 border border-red-200 rounded-lg p-4">
+      <div className="text-[#A82E22] bg-[#FEF0EE] border border-[#F8D2CE] rounded-xl p-4">
         Failed to load forms: {error.message}
       </div>
     );
   }
 
-  // Build a map for O(1) creator lookup
   const profileMap = new Map((profiles ?? []).map((p) => [p.id, p]));
+  const publishedCount = (forms ?? []).filter((f) => f.is_published).length;
+  const draftCount = (forms?.length ?? 0) - publishedCount;
 
   return (
-    <div>
-      <div className="flex items-center justify-between mb-8">
+    <div className="max-w-7xl mx-auto">
+      {/* Header */}
+      <div className="flex items-end justify-between gap-6 mb-8 flex-wrap">
         <div>
-          <h1 className="text-2xl font-bold text-slate-900 dark:text-slate-100">
-            Forms
+          <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[#4A4740] dark:text-[#A1AD97] mb-2">
+            Workspace
+          </p>
+          <h1 className="font-display text-4xl md:text-5xl text-[#002A30] dark:text-[#F0EAE1] tracking-tight leading-[1.05]">
+            Your <em className="not-italic italic font-display text-[#F77646]">forms</em>
           </h1>
-          <p className="text-slate-500 dark:text-slate-400 text-sm mt-1">
-            {forms?.length ?? 0} form{forms?.length !== 1 ? "s" : ""}
+          <p className="text-[#4A4740] dark:text-[#BEC5BA] mt-2 text-sm">
+            {forms?.length ?? 0} total · {publishedCount} published · {draftCount} draft
           </p>
         </div>
         <NewFormButton />
       </div>
 
+      {/* Quick stats */}
+      <div className="grid grid-cols-2 md:grid-cols-3 gap-4 mb-8">
+        <div className="glass rounded-2xl p-5">
+          <p className="text-xs uppercase tracking-[0.12em] text-[#4A4740] dark:text-[#A1AD97] font-semibold">Total Forms</p>
+          <p className="font-display text-3xl text-[#002A30] dark:text-[#F0EAE1] mt-2">{forms?.length ?? 0}</p>
+        </div>
+        <div className="glass rounded-2xl p-5">
+          <p className="text-xs uppercase tracking-[0.12em] text-[#4A4740] dark:text-[#A1AD97] font-semibold">Published</p>
+          <p className="font-display text-3xl text-[#002A30] dark:text-[#F0EAE1] mt-2">{publishedCount}</p>
+        </div>
+        <div className="glass rounded-2xl p-5">
+          <p className="text-xs uppercase tracking-[0.12em] text-[#4A4740] dark:text-[#A1AD97] font-semibold">Drafts</p>
+          <p className="font-display text-3xl text-[#002A30] dark:text-[#F0EAE1] mt-2">{draftCount}</p>
+        </div>
+      </div>
+
       {!forms?.length ? (
-        <div className="text-center py-20 text-slate-400">
-          <FileText className="mx-auto mb-3 h-10 w-10 opacity-40" />
-          <p className="text-lg font-medium">No forms yet</p>
-          <p className="text-sm mt-1">Create your first form to get started</p>
+        <div className="glass rounded-3xl text-center py-20 px-6">
+          <div className="mx-auto mb-4 inline-flex h-14 w-14 items-center justify-center rounded-2xl bg-[#003D45]/8 text-[#003D45] dark:bg-white/5 dark:text-[#A1AD97]">
+            <FileText className="h-6 w-6" />
+          </div>
+          <h2 className="font-display text-2xl text-[#002A30] dark:text-[#F0EAE1] tracking-tight">
+            No forms <em className="not-italic italic text-[#F77646]">yet</em>
+          </h2>
+          <p className="text-sm text-[#4A4740] dark:text-[#BEC5BA] mt-2 mb-5">
+            Create your first form to start collecting submissions.
+          </p>
+          <NewFormButton />
         </div>
       ) : (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
           {forms.map((form: Form) => {
             const creator = form.user_id ? profileMap.get(form.user_id) : null;
             return (
-              <Card key={form.id} className="hover:shadow-md transition-shadow">
-                <CardContent className="p-5">
-                  <div className="flex items-start justify-between mb-3">
-                    <h2 className="font-semibold text-slate-900 dark:text-slate-100 leading-tight line-clamp-2 flex-1 mr-2">
+              <Card
+                key={form.id}
+                className="group hover:-translate-y-0.5 hover:shadow-[0_18px_50px_-18px_rgba(0,61,69,0.28)] transition-all duration-300"
+              >
+                <CardContent className="p-6">
+                  <div className="flex items-start justify-between gap-3 mb-3">
+                    <h2 className="font-display text-lg text-[#002A30] dark:text-[#F0EAE1] leading-snug line-clamp-2 tracking-tight">
                       {form.title}
                     </h2>
                     <Badge
@@ -68,13 +99,13 @@ export default async function DashboardPage() {
                     </Badge>
                   </div>
                   {form.description && (
-                    <p className="text-sm text-slate-500 dark:text-slate-400 mb-3 line-clamp-2">
+                    <p className="text-sm text-[#4A4740] dark:text-[#BEC5BA] mb-4 line-clamp-2 leading-relaxed">
                       {form.description}
                     </p>
                   )}
                   <div className="flex items-center gap-1.5 mb-3">
-                    <User className="h-3 w-3 text-slate-400 shrink-0" />
-                    <span className="text-xs text-slate-400 truncate">
+                    <User className="h-3 w-3 text-[#706C63] dark:text-[#A1AD97] shrink-0" />
+                    <span className="text-xs text-[#706C63] dark:text-[#A1AD97] truncate">
                       {creator
                         ? creator.full_name
                           ? `${creator.full_name} · ${creator.email}`
@@ -82,14 +113,14 @@ export default async function DashboardPage() {
                         : "Unknown"}
                     </span>
                   </div>
-                  <p className="text-xs text-slate-400 dark:text-slate-500 mb-4">
+                  <p className="text-[11px] uppercase tracking-wider text-[#9C978C] dark:text-[#706C63] mb-5">
                     {new Date(form.created_at).toLocaleDateString("en-US", {
                       month: "short",
                       day: "numeric",
                       year: "numeric",
                     })}
                   </p>
-                  <div className="flex gap-2">
+                  <div className="flex gap-2 pt-4 border-t border-[#003D45]/8 dark:border-white/8">
                     <Button
                       asChild
                       size="sm"

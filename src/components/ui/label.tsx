@@ -7,7 +7,10 @@ export const Label = React.forwardRef<
 >(({ className, ...props }, ref) => (
   <label
     ref={ref}
-    className={cn("text-sm font-medium leading-none text-slate-900", className)}
+    className={cn(
+      "text-xs font-semibold uppercase tracking-[0.08em] text-[#4A4740] dark:text-[#BEC5BA]",
+      className,
+    )}
     {...props}
   />
 ));

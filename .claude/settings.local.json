@@ -16,7 +16,8 @@
       "WebSearch",
       "WebFetch(domain:www.docuseal.com)",
       "Bash(pnpm lint *)",
-      "Bash(pnpm exec *)"
+      "Bash(pnpm exec *)",
+      "WebFetch(domain:bioceutica-brandbook.vercel.app)"
     ]
   }
 }

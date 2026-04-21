@@ -35,7 +35,7 @@ export function TabsList({
   return (
     <div
       className={cn(
-        "inline-flex h-10 items-center rounded-md bg-slate-100 p-1 text-slate-500",
+        "inline-flex h-11 items-center rounded-full glass-subtle p-1 text-[#4A4740] dark:text-[#BEC5BA]",
         className,
       )}
       {...props}
@@ -60,8 +60,10 @@ export function TabsTrigger({
       type="button"
       onClick={() => ctx.onChange(value)}
       className={cn(
-        "inline-flex items-center justify-center rounded px-3 py-1.5 text-sm font-medium transition-colors",
-        isActive ? "bg-white text-slate-900 shadow-sm" : "hover:text-slate-900",
+        "inline-flex items-center justify-center rounded-full px-4 py-1.5 text-sm font-semibold transition-all",
+        isActive
+          ? "bg-[#003D45] text-white shadow-[0_4px_14px_-4px_rgba(0,61,69,0.45)] dark:bg-[#A1AD97] dark:text-[#002A30]"
+          : "hover:text-[#003D45] dark:hover:text-[#F0EAE1]",
         className,
       )}
       {...props}
@@ -78,5 +80,5 @@ interface TabsContentProps extends React.HTMLAttributes<HTMLDivElement> {
 export function TabsContent({ value, className, ...props }: TabsContentProps) {
   const ctx = React.useContext(TabsContext);
   if (ctx.value !== value) return null;
-  return <div className={cn("mt-2", className)} {...props} />;
+  return <div className={cn("mt-4", className)} {...props} />;
 }

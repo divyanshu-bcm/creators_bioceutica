@@ -22,9 +22,9 @@ export function Dialog({ open, onOpenChange, children }: DialogProps) {
   if (!open) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
       <div
-        className="absolute inset-0 bg-black/50"
+        className="absolute inset-0 bg-[#002A30]/35 backdrop-blur-sm"
         onClick={() => onOpenChange(false)}
       />
       <div className="relative z-10 w-full max-w-lg">{children}</div>
@@ -40,8 +40,7 @@ export function DialogContent({
   return (
     <div
       className={cn(
-        "bg-white rounded-xl shadow-xl p-6 mx-4",
-        "dark:bg-slate-900 dark:border dark:border-slate-700",
+        "glass-strong rounded-2xl p-6",
         className,
       )}
       {...props}
@@ -55,7 +54,7 @@ export function DialogHeader({
   className,
   ...props
 }: React.HTMLAttributes<HTMLDivElement>) {
-  return <div className={cn("mb-4", className)} {...props} />;
+  return <div className={cn("mb-5", className)} {...props} />;
 }
 
 export function DialogTitle({
@@ -64,7 +63,10 @@ export function DialogTitle({
 }: React.HTMLAttributes<HTMLHeadingElement>) {
   return (
     <h2
-      className={cn("text-lg font-semibold text-slate-900", className)}
+      className={cn(
+        "font-display text-2xl text-[#002A30] dark:text-[#F0EAE1] tracking-tight",
+        className,
+      )}
       {...props}
     />
   );
@@ -75,7 +77,13 @@ export function DialogDescription({
   ...props
 }: React.HTMLAttributes<HTMLParagraphElement>) {
   return (
-    <p className={cn("text-sm text-slate-500 mt-1", className)} {...props} />
+    <p
+      className={cn(
+        "text-sm text-[#4A4740] dark:text-[#BEC5BA] mt-1.5",
+        className,
+      )}
+      {...props}
+    />
   );
 }
 
@@ -84,6 +92,9 @@ export function DialogFooter({
   ...props
 }: React.HTMLAttributes<HTMLDivElement>) {
   return (
-    <div className={cn("flex justify-end gap-2 mt-6", className)} {...props} />
+    <div
+      className={cn("flex justify-end gap-2 mt-6", className)}
+      {...props}
+    />
   );
 }

@@ -1,19 +1,27 @@
 import type { Metadata } from "next";
 import Script from "next/script";
-import { Poppins } from "next/font/google";
+import { Inter, Fraunces } from "next/font/google";
 import "./globals.css";
 import { ThemeProvider } from "@/components/ThemeProvider";
 
-const poppins = Poppins({
+const aeonik = Inter({
   subsets: ["latin"],
-  weight: ["100", "200", "300", "400", "500", "600", "700", "800", "900"],
-  variable: "--font-poppins",
+  weight: ["400", "500", "600", "700"],
+  variable: "--font-aeonik",
+  display: "swap",
+});
+
+const gtSuper = Fraunces({
+  subsets: ["latin"],
+  weight: ["400", "500", "600", "700"],
+  style: ["normal", "italic"],
+  variable: "--font-gt-super",
   display: "swap",
 });
 
 export const metadata: Metadata = {
-  title: "Bioceutica Form Builder",
-  description: "Create and manage forms",
+  title: "Bioceutica Creators",
+  description: "Form builder & creator campaign management",
   icons: {
     icon: "/Small_logo.svg",
     shortcut: "/Small_logo.svg",
@@ -23,11 +31,13 @@ export const metadata: Metadata = {
 
 export default function RootLayout({
   children,
-}: Readonly<{
-  children: React.ReactNode;
-}>) {
+}: Readonly<{ children: React.ReactNode }>) {
   return (
-    <html lang="en" className={poppins.variable} suppressHydrationWarning>
+    <html
+      lang="en"
+      className={`${aeonik.variable} ${gtSuper.variable}`}
+      suppressHydrationWarning
+    >
       <body className="font-sans antialiased min-h-screen" suppressHydrationWarning>
         <Script id="strip-bis-skin-checked" strategy="beforeInteractive">
           {`document.querySelectorAll('[bis_skin_checked]').forEach(function (element) {

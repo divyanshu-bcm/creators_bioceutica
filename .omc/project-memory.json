@@ -1,6 +1,6 @@
 {
   "version": "1.0.0",
-  "lastScanned": 1776691392993,
+  "lastScanned": 1776814348737,
   "projectRoot": "D:\\Pehe\\bioceutica_creators",
   "techStack": {
     "languages": [
@@ -74,7 +74,7 @@
       "path": "public",
       "purpose": "Public files",
       "fileCount": 6,
-      "lastAccessed": 1776691392919,
+      "lastAccessed": 1776814348674,
       "keyFiles": [
         "file.svg",
         "globe.svg",
@@ -87,7 +87,7 @@
       "path": "src",
       "purpose": "Source code",
       "fileCount": 1,
-      "lastAccessed": 1776691392920,
+      "lastAccessed": 1776814348675,
       "keyFiles": [
         "proxy.ts"
       ]
@@ -96,7 +96,7 @@
       "path": "src\\app",
       "purpose": "Application code",
       "fileCount": 4,
-      "lastAccessed": 1776691392948,
+      "lastAccessed": 1776814348691,
       "keyFiles": [
         "favicon.ico",
         "globals.css",
@@ -107,7 +107,7 @@
       "path": "src\\components",
       "purpose": "UI components",
       "fileCount": 3,
-      "lastAccessed": 1776691392949,
+      "lastAccessed": 1776814348692,
       "keyFiles": [
         "AcceptInvitationForm.tsx",
         "ThemeProvider.tsx",
@@ -118,7 +118,7 @@
       "path": "src\\lib",
       "purpose": "Library code",
       "fileCount": 10,
-      "lastAccessed": 1776691392949,
+      "lastAccessed": 1776814348692,
       "keyFiles": [
         "creators-config.ts",
         "form-activity.ts",
@@ -152,21 +152,33 @@
       "type": "file"
     },
     {
+      "path": "src\\app\\layout.tsx",
+      "accessCount": 7,
+      "lastAccessed": 1776814693189,
+      "type": "file"
+    },
+    {
+      "path": "src\\app\\globals.css",
+      "accessCount": 6,
+      "lastAccessed": 1776814692073,
+      "type": "file"
+    },
+    {
+      "path": "src\\components\\dashboard\\Sidebar.tsx",
+      "accessCount": 6,
+      "lastAccessed": 1776814816298,
+      "type": "file"
+    },
+    {
       "path": "src\\proxy.ts",
       "accessCount": 5,
       "lastAccessed": 1776098599623,
       "type": "file"
     },
     {
-      "path": "src\\app\\layout.tsx",
+      "path": "src\\app\\dashboard\\layout.tsx",
       "accessCount": 5,
-      "lastAccessed": 1776691481968,
-      "type": "file"
-    },
-    {
-      "path": "src\\components\\dashboard\\Sidebar.tsx",
-      "accessCount": 4,
-      "lastAccessed": 1776098662700,
+      "lastAccessed": 1776815120012,
       "type": "file"
     },
     {
@@ -188,9 +200,27 @@
       "type": "file"
     },
     {
-      "path": "src\\app\\globals.css",
+      "path": "src\\components\\ui\\card.tsx",
       "accessCount": 4,
-      "lastAccessed": 1776691491450,
+      "lastAccessed": 1776814713332,
+      "type": "file"
+    },
+    {
+      "path": "src\\components\\ui\\badge.tsx",
+      "accessCount": 4,
+      "lastAccessed": 1776814729306,
+      "type": "file"
+    },
+    {
+      "path": "src\\components\\ui\\dialog.tsx",
+      "accessCount": 4,
+      "lastAccessed": 1776814736416,
+      "type": "file"
+    },
+    {
+      "path": "src\\components\\ui\\tabs.tsx",
+      "accessCount": 4,
+      "lastAccessed": 1776814752066,
       "type": "file"
     },
     {
@@ -212,6 +242,24 @@
       "type": "directory"
     },
     {
+      "path": "src\\components\\ui\\button.tsx",
+      "accessCount": 3,
+      "lastAccessed": 1776814708101,
+      "type": "file"
+    },
+    {
+      "path": "src\\components\\ui\\table.tsx",
+      "accessCount": 3,
+      "lastAccessed": 1776814744720,
+      "type": "file"
+    },
+    {
+      "path": "src\\app\\dashboard\\page.tsx",
+      "accessCount": 3,
+      "lastAccessed": 1776814852968,
+      "type": "file"
+    },
+    {
       "path": "next.config.ts",
       "accessCount": 2,
       "lastAccessed": 1776096083102,
@@ -221,30 +269,6 @@
       "path": "src\\app\\dashboard\\products\\page.tsx",
       "accessCount": 2,
       "lastAccessed": 1776098542002,
-      "type": "file"
-    },
-    {
-      "path": "src\\components\\ui\\tabs.tsx",
-      "accessCount": 2,
-      "lastAccessed": 1776098542451,
-      "type": "file"
-    },
-    {
-      "path": "src\\components\\ui\\dialog.tsx",
-      "accessCount": 2,
-      "lastAccessed": 1776098542952,
-      "type": "file"
-    },
-    {
-      "path": "src\\components\\ui\\badge.tsx",
-      "accessCount": 2,
-      "lastAccessed": 1776098543528,
-      "type": "file"
-    },
-    {
-      "path": "src\\components\\ui\\card.tsx",
-      "accessCount": 2,
-      "lastAccessed": 1776098555674,
       "type": "file"
     },
     {
@@ -260,15 +284,21 @@
       "type": "file"
     },
     {
-      "path": "src\\app\\dashboard\\layout.tsx",
+      "path": "package.json",
       "accessCount": 2,
-      "lastAccessed": 1776538910401,
+      "lastAccessed": 1776814585894,
       "type": "file"
     },
     {
-      "path": "package.json",
-      "accessCount": 1,
-      "lastAccessed": 1776095945923,
+      "path": "src\\app\\page.tsx",
+      "accessCount": 2,
+      "lastAccessed": 1776814587224,
+      "type": "file"
+    },
+    {
+      "path": "src\\components\\ThemeProvider.tsx",
+      "accessCount": 2,
+      "lastAccessed": 1776814595139,
       "type": "file"
     },
     {
@@ -314,18 +344,6 @@
       "type": "file"
     },
     {
-      "path": "src\\components\\ThemeProvider.tsx",
-      "accessCount": 1,
-      "lastAccessed": 1776095988487,
-      "type": "file"
-    },
-    {
-      "path": "src\\app\\page.tsx",
-      "accessCount": 1,
-      "lastAccessed": 1776095995644,
-      "type": "file"
-    },
-    {
       "path": "src\\lib\\form-activity.ts",
       "accessCount": 1,
       "lastAccessed": 1776095999522,
@@ -344,27 +362,9 @@
       "type": "file"
     },
     {
-      "path": "src\\app\\dashboard\\page.tsx",
-      "accessCount": 1,
-      "lastAccessed": 1776098463312,
-      "type": "file"
-    },
-    {
       "path": "src\\app\\dashboard\\creators\\page.tsx",
       "accessCount": 1,
       "lastAccessed": 1776098467442,
-      "type": "file"
-    },
-    {
-      "path": "src\\components\\ui\\table.tsx",
-      "accessCount": 1,
-      "lastAccessed": 1776098472371,
-      "type": "file"
-    },
-    {
-      "path": "src\\components\\ui\\button.tsx",
-      "accessCount": 1,
-      "lastAccessed": 1776098472668,
       "type": "file"
     },
     {

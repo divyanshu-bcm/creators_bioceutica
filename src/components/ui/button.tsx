@@ -15,22 +15,29 @@ export interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElemen
 }
 
 const variantClasses: Record<NonNullable<ButtonProps["variant"]>, string> = {
-  default:
-    "bg-slate-900 text-white hover:bg-slate-800 dark:bg-slate-100 dark:text-slate-900 dark:hover:bg-slate-200",
-  outline:
-    "border border-slate-300 bg-white hover:bg-slate-50 text-slate-900 dark:border-slate-600 dark:bg-slate-800 dark:hover:bg-slate-700 dark:text-slate-100",
+  default: cn(
+    "bg-[#003D45] text-white shadow-[0_8px_24px_-8px_rgba(0,61,69,0.55)]",
+    "hover:bg-[#002A30] hover:shadow-[0_10px_28px_-8px_rgba(0,61,69,0.65)]",
+    "dark:bg-[#A1AD97] dark:text-[#002A30] dark:hover:bg-[#BEC5BA]",
+  ),
+  outline: cn(
+    "glass-subtle text-[#003D45]",
+    "hover:bg-white/65 hover:border-white/70",
+    "dark:text-[#F0EAE1] dark:hover:bg-[#14262A]/60",
+  ),
   ghost:
-    "hover:bg-slate-100 text-slate-900 dark:hover:bg-slate-800 dark:text-slate-100",
-  destructive: "bg-red-600 text-white hover:bg-red-700",
+    "bg-transparent text-[#003D45] hover:bg-[#003D45]/8 dark:text-[#F0EAE1] dark:hover:bg-white/8",
+  destructive:
+    "bg-[#D43D2F] text-white hover:bg-[#A82E22] shadow-[0_8px_24px_-8px_rgba(212,61,47,0.55)]",
   secondary:
-    "bg-slate-100 text-slate-900 hover:bg-slate-200 dark:bg-slate-700 dark:text-slate-100 dark:hover:bg-slate-600",
-  link: "text-slate-900 underline-offset-4 hover:underline dark:text-slate-100",
+    "bg-[#F0EAE1] text-[#002A30] border border-[#E5DCCF] hover:bg-[#E5DCCF] dark:bg-white/6 dark:text-[#F0EAE1] dark:border-white/10 dark:hover:bg-white/10",
+  link: "text-[#003D45] underline-offset-4 hover:underline dark:text-[#A1AD97]",
 };
 
 const sizeClasses: Record<NonNullable<ButtonProps["size"]>, string> = {
-  default: "h-10 px-4 py-2 text-sm",
-  sm: "h-8 px-3 text-xs",
-  lg: "h-11 px-8 text-base",
+  default: "h-10 px-5 text-sm",
+  sm: "h-8 px-3.5 text-xs",
+  lg: "h-12 px-8 text-base",
   icon: "h-9 w-9",
 };
 
@@ -50,8 +57,9 @@ export const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
       <Comp
         ref={ref}
         className={cn(
-          "inline-flex items-center justify-center rounded-md font-medium transition-colors",
-          "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-400",
+          "inline-flex items-center justify-center gap-2 rounded-full font-semibold tracking-tight",
+          "transition-all duration-200 ease-out",
+          "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-offset-transparent focus-visible:ring-[var(--ring)]",
           "disabled:pointer-events-none disabled:opacity-50",
           variantClasses[variant],
           sizeClasses[size],
